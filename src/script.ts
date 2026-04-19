@@ -46,6 +46,13 @@ function createSimulation(particleCount: number) {
 	simManager.onUpdate = (data) => {
 		particleSystem.update(data, config.particleSize);
 	};
+	if (particleSystem.blackHoleSprite) {
+		renderer.scene.add(particleSystem.blackHoleSprite);
+	}
+
+	simManager.onUpdate = (data) => {
+		particleSystem.update(data, config.particleSize);
+	};
 }
 
 createSimulation(config.particleCount);
