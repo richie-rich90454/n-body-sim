@@ -1,36 +1,36 @@
-import * as THREE from 'three'
+import { Points, BufferGeometry, BufferAttribute, PointsMaterial, AdditiveBlending } from 'three'
 import { STRIDE } from '../math/PhysicsEngine'
 
 export class ParticleSystem {
-    public points: THREE.Points
-    private geometry: THREE.BufferGeometry
+    public points: Points
+    private geometry: BufferGeometry
     private count: number
     private positionArray: Float32Array
     private colorArray: Float32Array
 
     constructor(count: number) {
         this.count = count
-        this.geometry = new THREE.BufferGeometry()
+        this.geometry = new BufferGeometry()
         this.positionArray = new Float32Array(count * 3)
         this.colorArray = new Float32Array(count * 3)
 
-        this.geometry.setAttribute('position', new THREE.BufferAttribute(this.positionArray, 3))
-        this.geometry.setAttribute('color', new THREE.BufferAttribute(this.colorArray, 3))
+        this.geometry.setAttribute('position', new BufferAttribute(this.positionArray, 3))
+        this.geometry.setAttribute('color', new BufferAttribute(this.colorArray, 3))
 
-        const material = new THREE.PointsMaterial({
+        const material = new PointsMaterial({
             size: 1.2,
             vertexColors: true,
             transparent: true,
-            blending: THREE.AdditiveBlending,
+            blending: AdditiveBlending,
             depthWrite: false,
             sizeAttenuation: true
         })
 
-        this.points = new THREE.Points(this.geometry, material)
+        this.points = new Points(this.geometry, material)
     }
 
     public update(data: Float32Array, pointSize: number) {
-        const mat = this.points.material as THREE.PointsMaterial
+        const mat = this.points.material as PointsMaterial
         mat.size = pointSize
 
         let maxSpeed = 0.1
@@ -71,7 +71,12 @@ export class ParticleSystem {
     }
 
     public dispose() {
-        this.geometry.dispose();
-        (this.points.material as THREE.Material).dispose()
+        this.geometry.dispose()
+        const material = this.points.material
+        if (Array.isArray(material)) {
+            material.forEach(m => m.dispose())
+        } else {
+            material.dispose()
+        }
     }
 }

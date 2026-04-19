@@ -1,5 +1,4 @@
-import { defineConfig } from "vite"
-
+import {defineConfig} from "vite"
 export default defineConfig({
     base: "/n-body-sim/",
     build: {
@@ -8,14 +7,32 @@ export default defineConfig({
         cssMinify: "lightningcss",
         rollupOptions: {
             output: {
-                manualChunks: undefined
+                manualChunks: (id) => {
+                    if (id.includes("node_modules/three")) {
+                        return "three"
+                    }
+                    if (id.includes("node_modules/postprocessing")) {
+                        return "postprocessing"
+                    }
+                    if (id.includes("node_modules/katex")) {
+                        return "katex"
+                    }
+                    if (id.includes("node_modules")) {
+                        return "vendor"
+                    }
+                }
             }
         }
     },
     css: {
         transformer: "lightningcss",
         lightningcss: {
-            targets: { chrome: 80, firefox: 75, safari: 14, edge: 90 }
+            targets: {
+                chrome: 80,
+                firefox: 75,
+                safari: 14,
+                edge: 90
+            }
         }
     },
     worker: {
