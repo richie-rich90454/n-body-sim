@@ -1,27 +1,34 @@
 {
-  "name": "nbody-sim",
-  "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
-  "scripts": {
-    "dev": "vite",
-    "build": "vite build",
-    "preview": "vite preview"
-  },
-  "keywords": [],
-  "author": "",
-  "license": "MIT",
-  "type": "commonjs",
-  "dependencies": {
-    "katex": "^0.16.45",
-    "lil-gui": "^0.21.0",
-    "postprocessing": "^6.39.1",
-    "three": "^0.184.0"
-  },
-  "devDependencies": {
-    "@types/katex": "^0.16.8",
-    "@types/three": "^0.184.0",
-    "typescript": "^6.0.3",
-    "vite": "^8.0.8"
-  }
+	"name": "nbody-sim",
+	"version": "1.0.0",
+	"description": "",
+	"main": "index.js",
+	"scripts": {
+		"dev": "vite",
+		"build": "vite build",
+		"preview": "vite preview",
+		"format": "prettier --write .",
+		"format:check": "prettier --check .",
+		"format:js": "prettier --write \"**/*.{js,jsx,ts,tsx}\"",
+		"format:html": "prettier --write \"**/*.html\"",
+		"format:css": "prettier --write \"**/*.css\"",
+		"format:json": "prettier --write \"**/*.json\""
+	},
+	"keywords": [],
+	"author": "",
+	"license": "MIT",
+	"type": "commonjs",
+	"dependencies": {
+		"katex": "^0.16.45",
+		"lil-gui": "^0.21.0",
+		"postprocessing": "^6.39.1",
+		"three": "^0.184.0"
+	},
+	"devDependencies": {
+		"@types/katex": "^0.16.8",
+		"@types/three": "^0.184.0",
+		"prettier": "^3.8.3",
+		"typescript": "^6.0.3",
+		"vite": "^8.0.8"
+	}
 }

@@ -1,51 +1,66 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<title>N-Body Dynamics</title>
+		<link rel="shortcut icon" href="/favicon.png" type="image/x-icon" />
+		<link rel="preconnect" href="https://fonts.googleapis.com" />
+		<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+		<link
+			href="https://fonts.googleapis.com/css2?family=Noto+Sans:ital,wght@0,400;0,500;0,600;1,400&display=swap"
+			rel="stylesheet"
+		/>
+		<link rel="stylesheet" href="/src/style.css" />
+	</head>
 
-    <head>
-        <meta charset="UTF-8" />
-        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        <title>N-Body Dynamics</title>
-        <link rel="shortcut icon" href="/favicon.png" type="image/x-icon">
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-        <link href="https://fonts.googleapis.com/css2?family=Noto+Sans:ital,wght@0,400;0,500;0,600;1,400&display=swap"
-            rel="stylesheet" />
-        <link rel="stylesheet" href="/src/style.css" />
-    </head>
+	<body>
+		<div id="info">N-BODY GRAVITATIONAL SIMULATION</div>
 
-    <body>
-        <div id="info">N-BODY GRAVITATIONAL SIMULATION</div>
+		<div id="stats">
+			<div>
+				FPS:
+				<span id="fps-display">--</span>
+			</div>
+			<div>
+				FRAME:
+				<span id="frame-time">0.0</span>
+				ms
+			</div>
+			<div>
+				ENERGY DRIFT:
+				<span id="energy-drift">0.000</span>
+				%
+			</div>
+		</div>
 
-        <div id="stats">
-            <div>FPS: <span id="fps-display">--</span></div>
-            <div>FRAME: <span id="frame-time">0.0</span> ms</div>
-            <div>ENERGY DRIFT: <span id="energy-drift">0.000</span>%</div>
-        </div>
+		<div id="info-button">?</div>
 
-        <div id="info-button">?</div>
+		<div id="modal-overlay">
+			<div id="modal-content">
+				<span id="modal-close">&times;</span>
+				<h2>N-BODY GRAVITATIONAL DYNAMICS</h2>
 
-        <div id="modal-overlay">
-            <div id="modal-content">
-                <span id="modal-close">&times;</span>
-                <h2>N-BODY GRAVITATIONAL DYNAMICS</h2>
+				<div class="tab-container">
+					<button class="tab-btn active" data-level="advanced">
+						AP Physics C / Calc BC
+					</button>
+					<button class="tab-btn" data-level="intermediate">
+						AP Physics 1 / Calc AB
+					</button>
+					<button class="tab-btn" data-level="middle">Middle School</button>
+					<button class="tab-btn" data-level="basic">Elementary School</button>
+					<button class="tab-btn" data-level="tech">Tech Stack</button>
+				</div>
 
-                <div class="tab-container">
-                    <button class="tab-btn active" data-level="advanced">AP Physics C / Calc BC</button>
-                    <button class="tab-btn" data-level="intermediate">AP Physics 1 / Calc AB</button>
-                    <button class="tab-btn" data-level="middle">Middle School</button>
-                    <button class="tab-btn" data-level="basic">Elementary School</button>
-                    <button class="tab-btn" data-level="tech">Tech Stack</button>
-                </div>
+				<div id="explanation-advanced" class="explanation-pane active"></div>
+				<div id="explanation-intermediate" class="explanation-pane"></div>
+				<div id="explanation-middle" class="explanation-pane"></div>
+				<div id="explanation-basic" class="explanation-pane"></div>
+				<div id="explanation-tech" class="explanation-pane"></div>
+			</div>
+		</div>
 
-                <div id="explanation-advanced" class="explanation-pane active"></div>
-                <div id="explanation-intermediate" class="explanation-pane"></div>
-                <div id="explanation-middle" class="explanation-pane"></div>
-                <div id="explanation-basic" class="explanation-pane"></div>
-                <div id="explanation-tech" class="explanation-pane"></div>
-            </div>
-        </div>
-
-        <script type="module" src="/src/script.ts"></script>
-    </body>
-
+		<script type="module" src="/src/script.ts"></script>
+	</body>
 </html>

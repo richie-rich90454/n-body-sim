@@ -29,16 +29,16 @@ A high-performance, multi-threaded N-body particle simulation built with pure Ty
 
 ## Technology Stack
 
-| Category            | Technology                          |
-| ------------------- | ----------------------------------- |
-| Language            | TypeScript 5.4+                     |
-| Build Tool          | Vite 5+                             |
-| 3D Rendering        | Three.js r184                       |
-| Post-Processing     | postprocessing (UnrealBloomPass)    |
-| UI Controls         | lil-gui                             |
-| Math Rendering      | KaTeX                               |
-| Concurrency         | Web Workers (native)                |
-| Memory Management   | Float32Array, Transferable objects  |
+| Category          | Technology                         |
+| ----------------- | ---------------------------------- |
+| Language          | TypeScript 5.4+                    |
+| Build Tool        | Vite 5+                            |
+| 3D Rendering      | Three.js r184                      |
+| Post-Processing   | postprocessing (UnrealBloomPass)   |
+| UI Controls       | lil-gui                            |
+| Math Rendering    | KaTeX                              |
+| Concurrency       | Web Workers (native)               |
+| Memory Management | Float32Array, Transferable objects |
 
 ## Installation
 
@@ -113,18 +113,18 @@ The master `Float32Array` (storing positions, velocities, and masses for all par
 
 ## Control Parameters
 
-| Parameter               | Range         | Description                                                                 |
-| ----------------------- | ------------- | --------------------------------------------------------------------------- |
-| **G Constant**          | 0.1 – 2.0     | Scales the overall strength of gravitational attraction.                     |
-| **Softening (epsilon)** | 1.0 – 50.0    | Smoothing factor added to the distance squared to prevent singularities.     |
-| **Singular Mass**       | 5,000 – 500,000 | Mass assigned to the central particle when "Inject Black Hole" is pressed. |
-| **Time Step (dt)**      | 0.005 – 0.05  | Integration step size. Larger values speed up the simulation but reduce accuracy. |
-| **Sub-steps per frame** | 1 – 5         | Number of integration steps performed per rendered frame.                    |
-| **Time Scale**          | 0.1 – 3.0     | Multiplier for the simulation speed (does not affect accuracy).              |
-| **Point Size**          | 0.5 – 8.0     | Rendered size of each particle.                                              |
-| **Bloom Intensity**     | 0.0 – 3.0     | Strength of the neon glow effect.                                            |
-| **Particle Count**      | 1,000 – 20,000 | Total number of simulated bodies (resets the galaxy).                        |
-| **Pause Simulation**    | Boolean       | Freezes physics updates while allowing camera movement.                      |
+| Parameter | Range | Description |
+| --- | --- | --- |
+| **G Constant** | 0.1 – 2.0 | Scales the overall strength of gravitational attraction. |
+| **Softening (epsilon)** | 1.0 – 50.0 | Smoothing factor added to the distance squared to prevent singularities. |
+| **Singular Mass** | 5,000 – 500,000 | Mass assigned to the central particle when "Inject Black Hole" is pressed. |
+| **Time Step (dt)** | 0.005 – 0.05 | Integration step size. Larger values speed up the simulation but reduce accuracy. |
+| **Sub-steps per frame** | 1 – 5 | Number of integration steps performed per rendered frame. |
+| **Time Scale** | 0.1 – 3.0 | Multiplier for the simulation speed (does not affect accuracy). |
+| **Point Size** | 0.5 – 8.0 | Rendered size of each particle. |
+| **Bloom Intensity** | 0.0 – 3.0 | Strength of the neon glow effect. |
+| **Particle Count** | 1,000 – 20,000 | Total number of simulated bodies (resets the galaxy). |
+| **Pause Simulation** | Boolean | Freezes physics updates while allowing camera movement. |
 
 ## Performance Benchmarking
 

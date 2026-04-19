@@ -1,187 +1,187 @@
-import { initializeGalaxy, STRIDE } from './math/PhysicsEngine'
-import { SimulationManager } from './simulation/SimulationManager'
-import { SceneRenderer } from './visuals/SceneRenderer'
-import { ParticleSystem } from './visuals/ParticleSystem'
-import { PostFX } from './visuals/PostFX'
-import { UIController, SimConfig } from './visuals/UIController'
-import katex from 'katex'
-import 'katex/dist/katex.min.css'
+import { initializeGalaxy, STRIDE } from "./math/PhysicsEngine";
+import { SimulationManager } from "./simulation/SimulationManager";
+import { SceneRenderer } from "./visuals/SceneRenderer";
+import { ParticleSystem } from "./visuals/ParticleSystem";
+import { PostFX } from "./visuals/PostFX";
+import { UIController, SimConfig } from "./visuals/UIController";
+import katex from "katex";
+import "katex/dist/katex.min.css";
 
-const GALAXY_RADIUS = 400
+const GALAXY_RADIUS = 400;
 
 const config: SimConfig = {
-    gravitationalConstant: 0.5,
-    softeningEpsilon: 10.0,
-    blackHoleMass: 150000,
-    timeStep: 0.016,
-    integrationSteps: 2,
-    bloomIntensity: 1.2,
-    particleSize: 1.8,
-    timeScale: 1.0,
-    isPaused: false,
-    particleCount: 6000,
-    injectBlackHole: () => { },
-    resetGalaxy: () => { }
-}
+	gravitationalConstant: 0.5,
+	softeningEpsilon: 10.0,
+	blackHoleMass: 150000,
+	timeStep: 0.016,
+	integrationSteps: 2,
+	bloomIntensity: 1.2,
+	particleSize: 1.8,
+	timeScale: 1.0,
+	isPaused: false,
+	particleCount: 6000,
+	injectBlackHole: () => {},
+	resetGalaxy: () => {},
+};
 
-const renderer = new SceneRenderer()
-const postFX = new PostFX(renderer.renderer, renderer.scene, renderer.camera)
+const renderer = new SceneRenderer();
+const postFX = new PostFX(renderer.renderer, renderer.scene, renderer.camera);
 
-let particleSystem: ParticleSystem
-let simManager: SimulationManager
+let particleSystem: ParticleSystem;
+let simManager: SimulationManager;
 
 function createSimulation(particleCount: number) {
-    const initialData = initializeGalaxy(particleCount, GALAXY_RADIUS)
-    const workerCount = navigator.hardwareConcurrency || 4
-    if (simManager) {
-        simManager.terminate()
-    }
-    simManager = new SimulationManager(initialData, workerCount)
-    if (particleSystem) {
-        renderer.scene.remove(particleSystem.points)
-        particleSystem.dispose()
-    }
-    particleSystem = new ParticleSystem(particleCount)
-    renderer.scene.add(particleSystem.points)
-    simManager.onUpdate = (data) => {
-        particleSystem.update(data, config.particleSize)
-    }
+	const initialData = initializeGalaxy(particleCount, GALAXY_RADIUS);
+	const workerCount = navigator.hardwareConcurrency || 4;
+	if (simManager) {
+		simManager.terminate();
+	}
+	simManager = new SimulationManager(initialData, workerCount);
+	if (particleSystem) {
+		renderer.scene.remove(particleSystem.points);
+		particleSystem.dispose();
+	}
+	particleSystem = new ParticleSystem(particleCount);
+	renderer.scene.add(particleSystem.points);
+	simManager.onUpdate = (data) => {
+		particleSystem.update(data, config.particleSize);
+	};
 }
 
-createSimulation(config.particleCount)
+createSimulation(config.particleCount);
 
-const ui = new UIController(config)
+const ui = new UIController(config);
 
 config.injectBlackHole = () => {
-    simManager.setParticleMass(0, config.blackHoleMass)
-    const idx0 = 0 * STRIDE
-    simManager.particleData[idx0 + 3] = 0
-    simManager.particleData[idx0 + 4] = 0
-    simManager.particleData[idx0 + 5] = 0
-}
+	simManager.setParticleMass(0, config.blackHoleMass);
+	const idx0 = 0 * STRIDE;
+	simManager.particleData[idx0 + 3] = 0;
+	simManager.particleData[idx0 + 4] = 0;
+	simManager.particleData[idx0 + 5] = 0;
+};
 
 config.resetGalaxy = () => {
-    createSimulation(config.particleCount)
-    initialEnergy = 0
-}
+	createSimulation(config.particleCount);
+	initialEnergy = 0;
+};
 
-let lastTime = performance.now()
-let frameCount = 0
-let fpsTimer = performance.now()
-let lastEnergyCheck = performance.now()
-let initialEnergy = 0
-let energyDrift = 0
+let lastTime = performance.now();
+let frameCount = 0;
+let fpsTimer = performance.now();
+let lastEnergyCheck = performance.now();
+let initialEnergy = 0;
+let energyDrift = 0;
 
 function computeTotalEnergy(data: Float32Array, G: number, softeningSq: number): number {
-    const count = data.length / STRIDE
-    let kinetic = 0
-    let potential = 0
-    for (let i = 0; i < count; i++) {
-        const i7 = i * STRIDE
-        const vx = data[i7 + 3]
-        const vy = data[i7 + 4]
-        const vz = data[i7 + 5]
-        const m = data[i7 + 6]
-        kinetic += 0.5 * m * (vx * vx + vy * vy + vz * vz)
-    }
-    for (let i = 0; i < count; i++) {
-        const i7 = i * STRIDE
-        const px = data[i7]
-        const py = data[i7 + 1]
-        const pz = data[i7 + 2]
-        const mi = data[i7 + 6]
-        for (let j = i + 1; j < count; j++) {
-            const j7 = j * STRIDE
-            const dx = data[j7] - px
-            const dy = data[j7 + 1] - py
-            const dz = data[j7 + 2] - pz
-            const distSq = dx * dx + dy * dy + dz * dz + softeningSq
-            const mj = data[j7 + 6]
-            potential -= G * mi * mj / Math.sqrt(distSq)
-        }
-    }
-    return kinetic + potential
+	const count = data.length / STRIDE;
+	let kinetic = 0;
+	let potential = 0;
+	for (let i = 0; i < count; i++) {
+		const i7 = i * STRIDE;
+		const vx = data[i7 + 3];
+		const vy = data[i7 + 4];
+		const vz = data[i7 + 5];
+		const m = data[i7 + 6];
+		kinetic += 0.5 * m * (vx * vx + vy * vy + vz * vz);
+	}
+	for (let i = 0; i < count; i++) {
+		const i7 = i * STRIDE;
+		const px = data[i7];
+		const py = data[i7 + 1];
+		const pz = data[i7 + 2];
+		const mi = data[i7 + 6];
+		for (let j = i + 1; j < count; j++) {
+			const j7 = j * STRIDE;
+			const dx = data[j7] - px;
+			const dy = data[j7 + 1] - py;
+			const dz = data[j7 + 2] - pz;
+			const distSq = dx * dx + dy * dy + dz * dz + softeningSq;
+			const mj = data[j7 + 6];
+			potential -= (G * mi * mj) / Math.sqrt(distSq);
+		}
+	}
+	return kinetic + potential;
 }
 
 function animationLoop() {
-    requestAnimationFrame(animationLoop)
-    const now = performance.now()
-    const deltaTime = Math.min(now - lastTime, 100)
-    lastTime = now
-    frameCount++
-    if (now - fpsTimer >= 200) {
-        const fps = Math.round((frameCount * 1000) / (now - fpsTimer))
-        frameCount = 0
-        fpsTimer = now
-        const fpsEl = document.getElementById('fps-display')
-        if (fpsEl) fpsEl.innerText = fps.toString()
-        const frameTimeEl = document.getElementById('frame-time')
-        if (frameTimeEl) frameTimeEl.innerText = deltaTime.toFixed(2)
-    }
-    if (now - lastEnergyCheck > 500) {
-        lastEnergyCheck = now
-        const currentEnergy = computeTotalEnergy(
-            simManager.particleData,
-            config.gravitationalConstant,
-            config.softeningEpsilon * config.softeningEpsilon
-        )
-        if (initialEnergy === 0) initialEnergy = currentEnergy
-        energyDrift = Math.abs((currentEnergy - initialEnergy) / initialEnergy) * 100
-        const energyEl = document.getElementById('energy-drift')
-        if (energyEl) energyEl.innerText = energyDrift.toFixed(4) + '%'
-    }
-    renderer.controls.autoRotate = !config.isPaused
-    if (!config.isPaused) {
-        const effectiveDt = config.timeStep * config.timeScale
-        simManager.step({
-            G: config.gravitationalConstant,
-            DT: effectiveDt,
-            SOFTENING: config.softeningEpsilon,
-            STEPS: config.integrationSteps
-        })
-    } else {
-        if (simManager.onUpdate) {
-            simManager.onUpdate(simManager.particleData)
-        }
-    }
-    postFX.setBloomIntensity(config.bloomIntensity)
-    renderer.controls.update()
-    postFX.render()
+	requestAnimationFrame(animationLoop);
+	const now = performance.now();
+	const deltaTime = Math.min(now - lastTime, 100);
+	lastTime = now;
+	frameCount++;
+	if (now - fpsTimer >= 200) {
+		const fps = Math.round((frameCount * 1000) / (now - fpsTimer));
+		frameCount = 0;
+		fpsTimer = now;
+		const fpsEl = document.getElementById("fps-display");
+		if (fpsEl) fpsEl.innerText = fps.toString();
+		const frameTimeEl = document.getElementById("frame-time");
+		if (frameTimeEl) frameTimeEl.innerText = deltaTime.toFixed(2);
+	}
+	if (now - lastEnergyCheck > 500) {
+		lastEnergyCheck = now;
+		const currentEnergy = computeTotalEnergy(
+			simManager.particleData,
+			config.gravitationalConstant,
+			config.softeningEpsilon * config.softeningEpsilon,
+		);
+		if (initialEnergy === 0) initialEnergy = currentEnergy;
+		energyDrift = Math.abs((currentEnergy - initialEnergy) / initialEnergy) * 100;
+		const energyEl = document.getElementById("energy-drift");
+		if (energyEl) energyEl.innerText = energyDrift.toFixed(4) + "%";
+	}
+	renderer.controls.autoRotate = !config.isPaused;
+	if (!config.isPaused) {
+		const effectiveDt = config.timeStep * config.timeScale;
+		simManager.step({
+			G: config.gravitationalConstant,
+			DT: effectiveDt,
+			SOFTENING: config.softeningEpsilon,
+			STEPS: config.integrationSteps,
+		});
+	} else {
+		if (simManager.onUpdate) {
+			simManager.onUpdate(simManager.particleData);
+		}
+	}
+	postFX.setBloomIntensity(config.bloomIntensity);
+	renderer.controls.update();
+	postFX.render();
 }
 
-animationLoop()
+animationLoop();
 
-window.addEventListener('resize', () => {
-    renderer.onWindowResize()
-    postFX.setSize(window.innerWidth, window.innerHeight)
-})
+window.addEventListener("resize", () => {
+	renderer.onWindowResize();
+	postFX.setSize(window.innerWidth, window.innerHeight);
+});
 
 function renderFormula(tex: string, displayMode: boolean = true): string {
-    try {
-        return katex.renderToString(tex, { displayMode, throwOnError: false })
-    } catch (e) {
-        return `<span style="color:red">${tex}</span>`
-    }
+	try {
+		return katex.renderToString(tex, { displayMode, throwOnError: false });
+	} catch (e) {
+		return `<span style="color:red">${tex}</span>`;
+	}
 }
 
 const eq = {
-    F_ij: String.raw`F_{ij} = G \cdot \frac{m_i \cdot m_j}{r_{ij}^2}`,
-    F_net: String.raw`\vec{F}_{\text{net}, i} = \sum_{j \neq i} \vec{F}_{ij}`,
-    leapfrog1: String.raw`\begin{aligned} \vec{v}(t + \frac{\Delta t}{2}) &= \vec{v}(t) + \vec{a}(t) \cdot \frac{\Delta t}{2} \\ \vec{x}(t + \Delta t) &= \vec{x}(t) + \vec{v}(t + \frac{\Delta t}{2}) \cdot \Delta t \end{aligned}`,
-    leapfrog2: String.raw`\vec{v}(t + \Delta t) = \vec{v}(t + \frac{\Delta t}{2}) + \vec{a}(t + \Delta t) \cdot \frac{\Delta t}{2}`,
-    force_soft: String.raw`F_{ij} = G \cdot \frac{m_i \cdot m_j}{(r_{ij}^2 + \varepsilon^2)^{3/2}} \cdot \vec{r}_{ij}`,
-    energy: String.raw`E_{\text{total}} = \sum_i \frac{1}{2} m_i v_i^2 - \sum_{i < j} G \frac{m_i m_j}{\sqrt{r_{ij}^2 + \varepsilon^2}}`,
-    F_simple: String.raw`F = G \frac{m_1 m_2}{r^2}`,
-    v_half: String.raw`v_{\text{half}} = v + a \cdot \frac{\Delta t}{2}`,
-    x_new: String.raw`x_{\text{new}} = x + v_{\text{half}} \cdot \Delta t`,
-    F_basic: String.raw`F = G \frac{m_1 m_2}{r^2}`,
-    accel: String.raw`a = \frac{F}{m}`,
-    velocity_update: String.raw`v_{\text{new}} = v + a \cdot \Delta t`,
-    position_update: String.raw`x_{\text{new}} = x + v \cdot \Delta t`
-}
+	F_ij: String.raw`F_{ij} = G \cdot \frac{m_i \cdot m_j}{r_{ij}^2}`,
+	F_net: String.raw`\vec{F}_{\text{net}, i} = \sum_{j \neq i} \vec{F}_{ij}`,
+	leapfrog1: String.raw`\begin{aligned} \vec{v}(t + \frac{\Delta t}{2}) &= \vec{v}(t) + \vec{a}(t) \cdot \frac{\Delta t}{2} \\ \vec{x}(t + \Delta t) &= \vec{x}(t) + \vec{v}(t + \frac{\Delta t}{2}) \cdot \Delta t \end{aligned}`,
+	leapfrog2: String.raw`\vec{v}(t + \Delta t) = \vec{v}(t + \frac{\Delta t}{2}) + \vec{a}(t + \Delta t) \cdot \frac{\Delta t}{2}`,
+	force_soft: String.raw`F_{ij} = G \cdot \frac{m_i \cdot m_j}{(r_{ij}^2 + \varepsilon^2)^{3/2}} \cdot \vec{r}_{ij}`,
+	energy: String.raw`E_{\text{total}} = \sum_i \frac{1}{2} m_i v_i^2 - \sum_{i < j} G \frac{m_i m_j}{\sqrt{r_{ij}^2 + \varepsilon^2}}`,
+	F_simple: String.raw`F = G \frac{m_1 m_2}{r^2}`,
+	v_half: String.raw`v_{\text{half}} = v + a \cdot \frac{\Delta t}{2}`,
+	x_new: String.raw`x_{\text{new}} = x + v_{\text{half}} \cdot \Delta t`,
+	F_basic: String.raw`F = G \frac{m_1 m_2}{r^2}`,
+	accel: String.raw`a = \frac{F}{m}`,
+	velocity_update: String.raw`v_{\text{new}} = v + a \cdot \Delta t`,
+	position_update: String.raw`x_{\text{new}} = x + v \cdot \Delta t`,
+};
 
 const explanations = {
-    advanced: `
+	advanced: `
     <p>A multi‑threaded particle simulation demonstrating core concepts from <strong>AP Physics C (Mechanics)</strong> and <strong>AP Calculus BC</strong>.</p>
     <h3>PHYSICS FOUNDATION</h3>
     <p><span class="highlight">Newton's Law of Universal Gravitation</span> in vector form: each pair of particles exerts an attractive force along the line connecting them.</p>
@@ -207,7 +207,7 @@ const explanations = {
     <div class="equation">${renderFormula(eq.energy)}</div>
     <p>Monitoring its relative change over time validates the integrator's performance.</p>
   `,
-    intermediate: `
+	intermediate: `
     <p>A multi‑threaded particle simulation aligned with <strong>AP Physics 1</strong> (algebra‑based) and <strong>AP Calculus AB</strong>.</p>
     <h3>PHYSICS (AP Physics 1)</h3>
     <p><span class="highlight">Newton's Law of Universal Gravitation:</span> the gravitational force between two masses is directly proportional to the product of their masses and inversely proportional to the square of the distance between their centers.</p>
@@ -226,7 +226,7 @@ const explanations = {
     <p><span class="highlight">Δt:</span> Time step for integration.</p>
     <p><span class="highlight">Inject Black Hole:</span> Sets the central particle's mass to a very large value, simulating a supermassive black hole.</p>
   `,
-    middle: `
+	middle: `
     <p>A computer model of a galaxy, built using <strong>Algebra I & II</strong> and basic physics concepts. No calculus required!</p>
     <h3>GRAVITY: THE INVERSE‑SQUARE LAW</h3>
     <p>The force of gravity between two objects depends on their masses and the distance between them. If you double the distance, the force becomes one‑fourth as strong — an <span class="highlight">inverse‑square relationship</span>.</p>
@@ -245,7 +245,7 @@ const explanations = {
     <p><span class="highlight">Δt:</span> time step size — larger steps run faster but may look jerky or inaccurate.</p>
     <p><span class="highlight">Inject Black Hole:</span> turns the center into a supermassive object that dramatically warps the orbits.</p>
   `,
-    basic: `
+	basic: `
     <p>This is a model of stars moving under the force of gravity. No advanced math needed!</p>
     <h3>WHAT IS GRAVITY?</h3>
     <p>Gravity is a pulling force between things that have mass. <span class="highlight">More mass = stronger pull. Closer together = stronger pull.</span></p>
@@ -260,7 +260,7 @@ const explanations = {
     <h3>COLORS</h3>
     <p>Blue stars are moving slowly. Red/orange stars are moving fast.</p>
   `,
-    tech: `
+	tech: `
     <h3>FRONTEND & RENDERING</h3>
     <p><span class="tech-badge">Three.js r184</span> <span class="tech-badge">postprocessing v6.39</span></p>
     <p>WebGL rendering with UnrealBloomPass for a neon glow effect. No custom GLSL — pure JavaScript/TypeScript.</p>
@@ -296,53 +296,53 @@ const explanations = {
       <li><span class="highlight">typescript</span> ^6.0.3 (dev)</li>
       <li><span class="highlight">vite</span> ^8.0.8 (dev)</li>
     </ul>
-  `
-}
+  `,
+};
 
-const advancedEl = document.getElementById('explanation-advanced')
-const intermediateEl = document.getElementById('explanation-intermediate')
-const middleEl = document.getElementById('explanation-middle')
-const basicEl = document.getElementById('explanation-basic')
-const techEl = document.getElementById('explanation-tech')
+const advancedEl = document.getElementById("explanation-advanced");
+const intermediateEl = document.getElementById("explanation-intermediate");
+const middleEl = document.getElementById("explanation-middle");
+const basicEl = document.getElementById("explanation-basic");
+const techEl = document.getElementById("explanation-tech");
 
-if (advancedEl) advancedEl.innerHTML = explanations.advanced
-if (intermediateEl) intermediateEl.innerHTML = explanations.intermediate
-if (middleEl) middleEl.innerHTML = explanations.middle
-if (basicEl) basicEl.innerHTML = explanations.basic
-if (techEl) techEl.innerHTML = explanations.tech
+if (advancedEl) advancedEl.innerHTML = explanations.advanced;
+if (intermediateEl) intermediateEl.innerHTML = explanations.intermediate;
+if (middleEl) middleEl.innerHTML = explanations.middle;
+if (basicEl) basicEl.innerHTML = explanations.basic;
+if (techEl) techEl.innerHTML = explanations.tech;
 
-const tabs = document.querySelectorAll('.tab-btn')
-const panes = document.querySelectorAll('.explanation-pane')
+const tabs = document.querySelectorAll(".tab-btn");
+const panes = document.querySelectorAll(".explanation-pane");
 
-tabs.forEach(tab => {
-    tab.addEventListener('click', () => {
-        const level = (tab as HTMLElement).dataset.level
-        if (!level) return
-        tabs.forEach(t => t.classList.remove('active'))
-        panes.forEach(p => p.classList.remove('active'))
-        tab.classList.add('active')
-        const targetPane = document.getElementById(`explanation-${level}`)
-        if (targetPane) targetPane.classList.add('active')
-    })
-})
+tabs.forEach((tab) => {
+	tab.addEventListener("click", () => {
+		const level = (tab as HTMLElement).dataset.level;
+		if (!level) return;
+		tabs.forEach((t) => t.classList.remove("active"));
+		panes.forEach((p) => p.classList.remove("active"));
+		tab.classList.add("active");
+		const targetPane = document.getElementById(`explanation-${level}`);
+		if (targetPane) targetPane.classList.add("active");
+	});
+});
 
-const modal = document.getElementById('modal-overlay')
-const btn = document.getElementById('info-button')
-const close = document.getElementById('modal-close')
+const modal = document.getElementById("modal-overlay");
+const btn = document.getElementById("info-button");
+const close = document.getElementById("modal-close");
 
 if (btn && modal) {
-    btn.addEventListener('click', () => modal.classList.add('active'))
+	btn.addEventListener("click", () => modal.classList.add("active"));
 }
 if (close && modal) {
-    close.addEventListener('click', () => modal.classList.remove('active'))
+	close.addEventListener("click", () => modal.classList.remove("active"));
 }
 if (modal) {
-    modal.addEventListener('click', (e) => {
-        if (e.target === modal) modal.classList.remove('active')
-    })
+	modal.addEventListener("click", (e) => {
+		if (e.target === modal) modal.classList.remove("active");
+	});
 }
-document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape' && modal) {
-        modal.classList.remove('active')
-    }
-})
+document.addEventListener("keydown", (e) => {
+	if (e.key === "Escape" && modal) {
+		modal.classList.remove("active");
+	}
+});
