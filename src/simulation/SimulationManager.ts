@@ -93,7 +93,6 @@ export class SimulationManager {
 
 			const length = (endIdx - startIdx) * STRIDE;
 
-			// 使用 buffer.slice 创建独立副本，直接传输，省略额外的 set() 拷贝
 			const sliceBuffer = this.particleData.buffer.slice(
 				startIdx * STRIDE * 4,
 				startIdx * STRIDE * 4 + length * 4,
