@@ -5,8 +5,10 @@ export default defineConfig({
         target: "es2015",
         minify: "oxc",
         cssMinify: "lightningcss",
+        chunkSizeWarningLimit: 1000,
         rollupOptions: {
             output: {
+                codeSplitting: true,
                 manualChunks: (id) => {
                     if (id.includes("node_modules/three")) {
                         return "three"
