@@ -1,4 +1,14 @@
-import { Points, BufferGeometry, BufferAttribute, PointsMaterial, AdditiveBlending } from "three";
+import {
+	Points,
+	BufferGeometry,
+	BufferAttribute,
+	PointsMaterial,
+	AdditiveBlending,
+	Sprite,
+	SpriteMaterial,
+	CanvasTexture,
+	Color,
+} from "three";
 import { STRIDE } from "../math/PhysicsEngine";
 
 export class ParticleSystem {
@@ -7,6 +17,7 @@ export class ParticleSystem {
 	private count: number;
 	private positionArray: Float32Array;
 	private colorArray: Float32Array;
+	public blackHoleSprite: Sprite | null = null;
 
 	constructor(count: number) {
 		this.count = count;
@@ -27,6 +38,36 @@ export class ParticleSystem {
 		});
 
 		this.points = new Points(this.geometry, material);
+		this.createBlackHoleSprite();
+	}
+
+	private createBlackHoleSprite() {
+		const canvas = document.createElement("canvas");
+		canvas.width = 128;
+		canvas.height = 128;
+		const ctx = canvas.getContext("2d");
+		if (!ctx) return;
+
+		const gradient = ctx.createRadialGradient(64, 64, 0, 64, 64, 64);
+		gradient.addColorStop(0, "rgba(255, 180, 100, 1)");
+		gradient.addColorStop(0.4, "rgba(255, 100, 50, 0.9)");
+		gradient.addColorStop(0.6, "rgba(200, 50, 20, 0.7)");
+		gradient.addColorStop(0.8, "rgba(100, 20, 10, 0.4)");
+		gradient.addColorStop(1, "rgba(0, 0, 0, 0)");
+
+		ctx.fillStyle = gradient;
+		ctx.fillRect(0, 0, 128, 128);
+
+		const texture = new CanvasTexture(canvas);
+		const material = new SpriteMaterial({
+			map: texture,
+			blending: AdditiveBlending,
+			depthWrite: false,
+		});
+
+		this.blackHoleSprite = new Sprite(material);
+		this.blackHoleSprite.scale.set(80, 80, 1);
+		this.blackHoleSprite.visible = false;
 	}
 
 	public update(data: Float32Array, pointSize: number) {
@@ -34,6 +75,9 @@ export class ParticleSystem {
 		mat.size = pointSize;
 
 		let maxSpeed = 0.1;
+		let blackHoleMass = data[6];
+		let blackHolePos = { x: data[0], y: data[1], z: data[2] };
+
 		for (let i = 0; i < this.count; i++) {
 			const base = i * STRIDE;
 			const vx = data[base + 3];
@@ -68,6 +112,17 @@ export class ParticleSystem {
 
 		this.geometry.attributes.position.needsUpdate = true;
 		this.geometry.attributes.color.needsUpdate = true;
+
+		if (this.blackHoleSprite) {
+			if (blackHoleMass > 50000) {
+				this.blackHoleSprite.position.set(blackHolePos.x, blackHolePos.y, blackHolePos.z);
+				this.blackHoleSprite.visible = true;
+				const scale = 60 + (blackHoleMass / 5000) * 0.5;
+				this.blackHoleSprite.scale.set(scale, scale, 1);
+			} else {
+				this.blackHoleSprite.visible = false;
+			}
+		}
 	}
 
 	public dispose() {
@@ -77,6 +132,9 @@ export class ParticleSystem {
 			material.forEach((m) => m.dispose());
 		} else {
 			material.dispose();
+		}
+		if (this.blackHoleSprite) {
+			this.blackHoleSprite.material.dispose();
 		}
 	}
 }
