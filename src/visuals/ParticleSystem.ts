@@ -17,13 +17,15 @@ export class ParticleSystem {
 	private positionArray: Float32Array;
 	private colorArray: Float32Array;
 	public blackHoleSprite: Sprite | null = null;
+	private speeds: Float32Array;
+	private lastPointSize = 1.8;
 
 	constructor(count: number) {
 		this.count = count;
 		this.geometry = new BufferGeometry();
-
 		this.positionArray = new Float32Array(count * 3);
 		this.colorArray = new Float32Array(count * 3);
+		this.speeds = new Float32Array(count);
 
 		this.geometry.setAttribute("position", new BufferAttribute(this.positionArray, 3));
 		this.geometry.setAttribute("color", new BufferAttribute(this.colorArray, 3));
@@ -45,7 +47,6 @@ export class ParticleSystem {
 		const canvas = document.createElement("canvas");
 		canvas.width = 128;
 		canvas.height = 128;
-
 		const ctx = canvas.getContext("2d");
 		if (!ctx) return;
 
@@ -73,18 +74,19 @@ export class ParticleSystem {
 
 	public update(data: Float32Array, pointSize: number) {
 		const mat = this.points.material as PointsMaterial;
-		mat.size = pointSize;
+		if (this.lastPointSize !== pointSize) {
+			mat.size = pointSize;
+			this.lastPointSize = pointSize;
+		}
 
-		const speeds = new Float32Array(this.count);
 		let maxSpeed = 0.1;
-
 		for (let i = 0; i < this.count; i++) {
 			const base = i * STRIDE;
 			const vx = data[base + 3];
 			const vy = data[base + 4];
 			const vz = data[base + 5];
 			const speed = Math.sqrt(vx * vx + vy * vy + vz * vz);
-			speeds[i] = speed;
+			this.speeds[i] = speed;
 			if (speed > maxSpeed) maxSpeed = speed;
 		}
 		maxSpeed = Math.max(maxSpeed, 0.001);
@@ -96,7 +98,7 @@ export class ParticleSystem {
 			this.positionArray[posIdx + 1] = data[base + 1];
 			this.positionArray[posIdx + 2] = data[base + 2];
 
-			const t = Math.min(speeds[i] / maxSpeed, 1.0);
+			const t = Math.min(this.speeds[i] / maxSpeed, 1.0);
 			const r = t;
 			const g = 0.6 + 0.4 * Math.sin(t * Math.PI);
 			const b = 1.0 - t * 0.7;
@@ -114,13 +116,11 @@ export class ParticleSystem {
 
 	private updateBlackHoleSprite(data: Float32Array, pointSize: number) {
 		if (!this.blackHoleSprite) return;
-
 		const blackHoleMass = data[6];
-
-		if (blackHoleMass > 50000) {
+		if (blackHoleMass > 10000) {
 			this.blackHoleSprite.position.set(data[0], data[1], data[2]);
 			this.blackHoleSprite.visible = true;
-			this.blackHoleSprite.scale.set(pointSize * 4, pointSize * 4, 1);
+			this.blackHoleSprite.scale.set(pointSize * 2.5, pointSize * 2.5, 1);
 		} else {
 			this.blackHoleSprite.visible = false;
 		}
@@ -128,14 +128,12 @@ export class ParticleSystem {
 
 	public dispose() {
 		this.geometry.dispose();
-
 		const material = this.points.material;
 		if (Array.isArray(material)) {
 			material.forEach((m) => m.dispose());
 		} else {
 			material.dispose();
 		}
-
 		if (this.blackHoleSprite) {
 			this.blackHoleSprite.material.dispose();
 		}

@@ -23,7 +23,7 @@ export function initializeGalaxy(particleCount: number, radius: number): Float32
 			data[idx + 3] = 0;
 			data[idx + 4] = 0;
 			data[idx + 5] = 0;
-			data[idx + 6] = centerMass;
+			data[idx + 6] = 0.5 + Math.random() * 2.0;
 		} else {
 			const speed = Math.sqrt((G * centerMass) / (r + 10)) * (0.8 + 0.4 * Math.random());
 			const vx = -speed * Math.sin(theta);

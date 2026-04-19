@@ -29,8 +29,8 @@ self.onmessage = (e: MessageEvent) => {
 				const mj = allData[j7 + 6];
 
 				const distSq = dx * dx + dy * dy + dz * dz + softeningSq;
-				const dist = Math.sqrt(distSq);
-				const factor = (G * mj) / (distSq * dist);
+				const invDist = 1 / Math.sqrt(distSq);
+				const factor = G * mj * invDist * invDist * invDist;
 
 				ax += dx * factor;
 				ay += dy * factor;
@@ -69,8 +69,8 @@ self.onmessage = (e: MessageEvent) => {
 				const mj = allData[j7 + 6];
 
 				const distSq = dx * dx + dy * dy + dz * dz + softeningSq;
-				const dist = Math.sqrt(distSq);
-				const factor = (G * mj) / (distSq * dist);
+				const invDist = 1 / Math.sqrt(distSq);
+				const factor = G * mj * invDist * invDist * invDist;
 
 				ax += dx * factor;
 				ay += dy * factor;

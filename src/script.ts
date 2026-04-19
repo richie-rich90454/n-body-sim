@@ -33,19 +33,27 @@ let simManager: SimulationManager;
 function createSimulation(particleCount: number) {
 	const initialData = initializeGalaxy(particleCount, GALAXY_RADIUS);
 	const workerCount = navigator.hardwareConcurrency || 4;
+
 	if (simManager) {
 		simManager.terminate();
 	}
+
 	simManager = new SimulationManager(initialData, workerCount);
+
 	if (particleSystem) {
 		renderer.scene.remove(particleSystem.points);
+		if (particleSystem.blackHoleSprite) {
+			renderer.scene.remove(particleSystem.blackHoleSprite);
+		}
 		particleSystem.dispose();
 	}
+
 	particleSystem = new ParticleSystem(particleCount);
 	renderer.scene.add(particleSystem.points);
 	if (particleSystem.blackHoleSprite) {
 		renderer.scene.add(particleSystem.blackHoleSprite);
 	}
+
 	simManager.onUpdate = (data) => {
 		particleSystem.update(data, config.particleSize);
 	};

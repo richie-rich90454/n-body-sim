@@ -16,7 +16,6 @@ export class SimulationManager {
 
 	constructor(initialData: Float32Array, workerCount: number) {
 		this.particleData = new Float32Array(initialData);
-
 		for (let i = 0; i < workerCount; i++) {
 			const worker = new Worker(new URL("./physics.worker.ts", import.meta.url), {
 				type: "module",
@@ -28,23 +27,15 @@ export class SimulationManager {
 
 	private handleWorkerMessage(workerIndex: number, e: MessageEvent<WorkerMessage>) {
 		const { slice, startIdx } = e.data;
-
 		if (this.resetRequested) {
 			this.busyWorkers--;
-			if (this.busyWorkers === 0) {
-				this.finishReset();
-			}
+			if (this.busyWorkers === 0) this.finishReset();
 			return;
 		}
-
 		this.particleData.set(slice, startIdx * STRIDE);
 		this.busyWorkers--;
-
 		if (this.busyWorkers === 0) {
-			if (this.onUpdate) {
-				this.onUpdate(this.particleData);
-			}
-
+			if (this.onUpdate) this.onUpdate(this.particleData);
 			if (this.pendingData) {
 				this.step(this.pendingData);
 				this.pendingData = null;
@@ -57,13 +48,9 @@ export class SimulationManager {
 			this.particleData = new Float32Array(this.newDataAfterReset);
 			this.newDataAfterReset = null;
 		}
-
 		this.resetRequested = false;
 		this.pendingData = null;
-
-		if (this.onUpdate) {
-			this.onUpdate(this.particleData);
-		}
+		if (this.onUpdate) this.onUpdate(this.particleData);
 	}
 
 	public step(config: any) {
@@ -71,33 +58,23 @@ export class SimulationManager {
 			this.pendingData = config;
 			return;
 		}
-
-		if (this.resetRequested) {
-			return;
-		}
+		if (this.resetRequested) return;
 
 		const count = this.particleData.length / STRIDE;
 		const workerCount = this.workers.length;
 		const chunkSize = Math.ceil(count / workerCount);
-
 		this.busyWorkers = workerCount;
 
 		for (let w = 0; w < workerCount; w++) {
 			const startIdx = w * chunkSize;
 			const endIdx = Math.min(startIdx + chunkSize, count);
-
 			if (startIdx >= count) {
 				this.busyWorkers--;
 				continue;
 			}
-
 			const length = (endIdx - startIdx) * STRIDE;
-
-			const sliceBuffer = this.particleData.buffer.slice(
-				startIdx * STRIDE * 4,
-				startIdx * STRIDE * 4 + length * 4,
-			);
-			const slice = new Float32Array(sliceBuffer);
+			const slice = new Float32Array(length);
+			slice.set(new Float32Array(this.particleData.buffer, startIdx * STRIDE * 4, length));
 
 			this.workers[w].postMessage(
 				{
@@ -123,10 +100,7 @@ export class SimulationManager {
 	public reset(newData: Float32Array) {
 		this.resetRequested = true;
 		this.newDataAfterReset = newData;
-
-		if (this.busyWorkers === 0) {
-			this.finishReset();
-		}
+		if (this.busyWorkers === 0) this.finishReset();
 	}
 
 	public terminate() {
