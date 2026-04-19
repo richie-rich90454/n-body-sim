@@ -331,8 +331,8 @@ const explanations = {
 			<li><span class="highlight">typescript</span> ^6.0.3 (dev)</li>
 			<li><span class="highlight">vite</span> ^8.0.8 (dev)</li>
 		</ul>
-	`
-}
+	`,
+};
 
 const advancedEl = document.getElementById("explanation-advanced");
 const intermediateEl = document.getElementById("explanation-intermediate");

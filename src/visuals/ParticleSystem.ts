@@ -75,35 +75,28 @@ export class ParticleSystem {
 		const mat = this.points.material as PointsMaterial;
 		mat.size = pointSize;
 
-		// 临时存储速度，避免二次遍历
 		const speeds = new Float32Array(this.count);
 		let maxSpeed = 0.1;
 
-		// 第一遍：计算速度并找出最大值
 		for (let i = 0; i < this.count; i++) {
 			const base = i * STRIDE;
 			const vx = data[base + 3];
 			const vy = data[base + 4];
 			const vz = data[base + 5];
 			const speed = Math.sqrt(vx * vx + vy * vy + vz * vz);
-
 			speeds[i] = speed;
 			if (speed > maxSpeed) maxSpeed = speed;
 		}
-
 		maxSpeed = Math.max(maxSpeed, 0.001);
 
-		// 第二遍：更新位置和颜色
 		for (let i = 0; i < this.count; i++) {
 			const base = i * STRIDE;
 			const posIdx = i * 3;
-
 			this.positionArray[posIdx] = data[base];
 			this.positionArray[posIdx + 1] = data[base + 1];
 			this.positionArray[posIdx + 2] = data[base + 2];
 
 			const t = Math.min(speeds[i] / maxSpeed, 1.0);
-
 			const r = t;
 			const g = 0.6 + 0.4 * Math.sin(t * Math.PI);
 			const b = 1.0 - t * 0.7;
@@ -116,10 +109,10 @@ export class ParticleSystem {
 		this.geometry.attributes.position.needsUpdate = true;
 		this.geometry.attributes.color.needsUpdate = true;
 
-		this.updateBlackHoleSprite(data);
+		this.updateBlackHoleSprite(data, pointSize);
 	}
 
-	private updateBlackHoleSprite(data: Float32Array) {
+	private updateBlackHoleSprite(data: Float32Array, pointSize: number) {
 		if (!this.blackHoleSprite) return;
 
 		const blackHoleMass = data[6];
@@ -127,9 +120,7 @@ export class ParticleSystem {
 		if (blackHoleMass > 50000) {
 			this.blackHoleSprite.position.set(data[0], data[1], data[2]);
 			this.blackHoleSprite.visible = true;
-
-			const scale = 60 + (blackHoleMass / 5000) * 0.5;
-			this.blackHoleSprite.scale.set(scale, scale, 1);
+			this.blackHoleSprite.scale.set(pointSize * 4, pointSize * 4, 1);
 		} else {
 			this.blackHoleSprite.visible = false;
 		}
