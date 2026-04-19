@@ -3,7 +3,27 @@
 	<head>
 		<meta charset="UTF-8" />
 		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-		<title>N-Body Dynamics</title>
+
+		<title>N-Body Gravitational Dynamics | Multi-Threaded Physics Simulation</title>
+		<meta
+			name="description"
+			content="A high-performance N-body gravitational simulation built with pure TypeScript and Web Workers. Demonstrates Newtonian mechanics, numerical integration, and parallel computing. Ideal for AP Physics, Calculus, and CPU benchmarking."
+		/>
+		<meta
+			name="keywords"
+			content="N-body, gravity, simulation, TypeScript, Web Workers, Leapfrog, Three.js, AP Physics, Calculus, benchmark"
+		/>
+		<meta name="author" content="Richard's Blogs" />
+		<meta name="robots" content="index, follow" />
+
+		<meta property="og:title" content="N-Body Gravitational Dynamics" />
+		<meta
+			property="og:description"
+			content="Interactive multi-threaded N-body simulation demonstrating Newtonian gravity and numerical integration."
+		/>
+		<meta property="og:type" content="website" />
+		<meta property="og:image" content="/favicon.png" />
+
 		<link rel="shortcut icon" href="/favicon.png" type="image/x-icon" />
 		<link rel="preconnect" href="https://fonts.googleapis.com" />
 		<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -15,7 +35,9 @@
 	</head>
 
 	<body>
-		<div id="info">N-BODY GRAVITATIONAL SIMULATION</div>
+		<header>
+			<div id="info">N-BODY GRAVITATIONAL SIMULATION | PURE TYPESCRIPT + WEB WORKERS</div>
+		</header>
 
 		<div id="stats">
 			<div>
@@ -34,30 +56,34 @@
 			</div>
 		</div>
 
-		<div id="info-button">?</div>
+		<div id="info-button" aria-label="Open information panel">?</div>
 
 		<div id="modal-overlay">
-			<div id="modal-content">
-				<span id="modal-close">&times;</span>
+			<div id="modal-content" role="dialog" aria-label="Simulation information">
+				<span id="modal-close" aria-label="Close panel">&times;</span>
 				<h2>N-BODY GRAVITATIONAL DYNAMICS</h2>
 
-				<div class="tab-container">
-					<button class="tab-btn active" data-level="advanced">
+				<div class="tab-container" role="tablist">
+					<button class="tab-btn active" data-level="advanced" role="tab">
 						AP Physics C / Calc BC
 					</button>
-					<button class="tab-btn" data-level="intermediate">
+					<button class="tab-btn" data-level="intermediate" role="tab">
 						AP Physics 1 / Calc AB
 					</button>
-					<button class="tab-btn" data-level="middle">Middle School</button>
-					<button class="tab-btn" data-level="basic">Elementary School</button>
-					<button class="tab-btn" data-level="tech">Tech Stack</button>
+					<button class="tab-btn" data-level="middle" role="tab">Middle School</button>
+					<button class="tab-btn" data-level="basic" role="tab">Elementary School</button>
+					<button class="tab-btn" data-level="tech" role="tab">Tech Stack</button>
 				</div>
 
-				<div id="explanation-advanced" class="explanation-pane active"></div>
-				<div id="explanation-intermediate" class="explanation-pane"></div>
-				<div id="explanation-middle" class="explanation-pane"></div>
-				<div id="explanation-basic" class="explanation-pane"></div>
-				<div id="explanation-tech" class="explanation-pane"></div>
+				<div
+					id="explanation-advanced"
+					class="explanation-pane active"
+					role="tabpanel"
+				></div>
+				<div id="explanation-intermediate" class="explanation-pane" role="tabpanel"></div>
+				<div id="explanation-middle" class="explanation-pane" role="tabpanel"></div>
+				<div id="explanation-basic" class="explanation-pane" role="tabpanel"></div>
+				<div id="explanation-tech" class="explanation-pane" role="tabpanel"></div>
 			</div>
 		</div>
 
