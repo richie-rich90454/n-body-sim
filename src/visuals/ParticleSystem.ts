@@ -72,7 +72,7 @@ export class ParticleSystem {
 		this.blackHoleSprite.visible = false;
 	}
 
-	public update(data: Float32Array, pointSize: number) {
+	public update(data: Float32Array, pointSize: number, blackHoleIdx: number) {
 		const mat = this.points.material as PointsMaterial;
 		if (this.lastPointSize !== pointSize) {
 			mat.size = pointSize;
@@ -111,14 +111,15 @@ export class ParticleSystem {
 		this.geometry.attributes.position.needsUpdate = true;
 		this.geometry.attributes.color.needsUpdate = true;
 
-		this.updateBlackHoleSprite(data, pointSize);
+		this.updateBlackHoleSprite(data, pointSize, blackHoleIdx);
 	}
 
-	private updateBlackHoleSprite(data: Float32Array, pointSize: number) {
+	private updateBlackHoleSprite(data: Float32Array, pointSize: number, blackHoleIdx: number) {
 		if (!this.blackHoleSprite) return;
-		const blackHoleMass = data[6];
-		if (blackHoleMass > 10000) {
-			this.blackHoleSprite.position.set(data[0], data[1], data[2]);
+		const base = blackHoleIdx * STRIDE;
+		const mass = data[base + 6];
+		if (mass > 10000) {
+			this.blackHoleSprite.position.set(data[base], data[base + 1], data[base + 2]);
 			this.blackHoleSprite.visible = true;
 			this.blackHoleSprite.scale.set(pointSize * 2.5, pointSize * 2.5, 1);
 		} else {

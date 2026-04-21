@@ -29,6 +29,7 @@ const postFX = new PostFX(renderer.renderer, renderer.scene, renderer.camera);
 
 let particleSystem: ParticleSystem;
 let simManager: SimulationManager;
+let blackHoleIndex = 0;
 
 function createSimulation(particleCount: number) {
 	const initialData = initializeGalaxy(particleCount, GALAXY_RADIUS);
@@ -55,8 +56,9 @@ function createSimulation(particleCount: number) {
 	}
 
 	simManager.onUpdate = (data) => {
-		particleSystem.update(data, config.particleSize);
+		particleSystem.update(data, config.particleSize, blackHoleIndex);
 	};
+	blackHoleIndex = 0;
 }
 
 createSimulation(config.particleCount);
@@ -64,11 +66,17 @@ createSimulation(config.particleCount);
 const ui = new UIController(config);
 
 config.injectBlackHole = () => {
-	simManager.setParticleMass(0, config.blackHoleMass);
-	const idx0 = 0 * STRIDE;
-	simManager.particleData[idx0 + 3] = 0;
-	simManager.particleData[idx0 + 4] = 0;
-	simManager.particleData[idx0 + 5] = 0;
+	const count = simManager.particleData.length / STRIDE;
+	let newIndex = 0;
+	do {
+		newIndex = Math.floor(Math.random() * count);
+	} while (newIndex === 0 && count > 1);
+	blackHoleIndex = newIndex;
+	simManager.setParticleMass(blackHoleIndex, config.blackHoleMass);
+	const idx = blackHoleIndex * STRIDE;
+	simManager.particleData[idx + 3] = 0;
+	simManager.particleData[idx + 4] = 0;
+	simManager.particleData[idx + 5] = 0;
 };
 
 config.resetGalaxy = () => {
