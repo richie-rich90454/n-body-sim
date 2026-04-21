@@ -45,20 +45,21 @@ export class ParticleSystem {
 
 	private createBlackHoleSprite() {
 		const canvas = document.createElement("canvas");
-		canvas.width = 128;
-		canvas.height = 128;
+		canvas.width = 256;
+		canvas.height = 256;
 		const ctx = canvas.getContext("2d");
 		if (!ctx) return;
 
-		const gradient = ctx.createRadialGradient(64, 64, 0, 64, 64, 64);
-		gradient.addColorStop(0, "rgba(255, 180, 100, 1)");
-		gradient.addColorStop(0.4, "rgba(255, 100, 50, 0.9)");
-		gradient.addColorStop(0.6, "rgba(200, 50, 20, 0.7)");
-		gradient.addColorStop(0.8, "rgba(100, 20, 10, 0.4)");
+		const gradient = ctx.createRadialGradient(128, 128, 0, 128, 128, 128);
+		gradient.addColorStop(0, "rgba(255, 220, 150, 1)");
+		gradient.addColorStop(0.2, "rgba(255, 150, 50, 1)");
+		gradient.addColorStop(0.4, "rgba(255, 80, 20, 0.9)");
+		gradient.addColorStop(0.6, "rgba(200, 40, 10, 0.7)");
+		gradient.addColorStop(0.8, "rgba(100, 15, 5, 0.4)");
 		gradient.addColorStop(1, "rgba(0, 0, 0, 0)");
 
 		ctx.fillStyle = gradient;
-		ctx.fillRect(0, 0, 128, 128);
+		ctx.fillRect(0, 0, 256, 256);
 
 		const texture = new CanvasTexture(canvas);
 		const material = new SpriteMaterial({
@@ -68,7 +69,7 @@ export class ParticleSystem {
 		});
 
 		this.blackHoleSprite = new Sprite(material);
-		this.blackHoleSprite.scale.set(80, 80, 1);
+		this.blackHoleSprite.scale.set(120, 120, 1);
 		this.blackHoleSprite.visible = false;
 	}
 
@@ -121,7 +122,8 @@ export class ParticleSystem {
 		if (mass > 10000) {
 			this.blackHoleSprite.position.set(data[base], data[base + 1], data[base + 2]);
 			this.blackHoleSprite.visible = true;
-			this.blackHoleSprite.scale.set(pointSize * 2.5, pointSize * 2.5, 1);
+			const scale = pointSize * 10.0;
+			this.blackHoleSprite.scale.set(scale, scale, 1);
 		} else {
 			this.blackHoleSprite.visible = false;
 		}

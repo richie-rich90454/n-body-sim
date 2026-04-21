@@ -68,15 +68,35 @@ const ui = new UIController(config);
 config.injectBlackHole = () => {
 	const count = simManager.particleData.length / STRIDE;
 	let newIndex = 0;
-	do {
-		newIndex = Math.floor(Math.random() * count);
-	} while (newIndex === 0 && count > 1);
+	let maxDist = -Infinity;
+	for (let i = 0; i < count; i++) {
+		const idx = i * STRIDE;
+		const x = simManager.particleData[idx];
+		const y = simManager.particleData[idx + 1];
+		const z = simManager.particleData[idx + 2];
+		const dist = Math.sqrt(x * x + y * y + z * z);
+		if (dist > maxDist) {
+			maxDist = dist;
+			newIndex = i;
+		}
+	}
 	blackHoleIndex = newIndex;
 	simManager.setParticleMass(blackHoleIndex, config.blackHoleMass);
 	const idx = blackHoleIndex * STRIDE;
 	simManager.particleData[idx + 3] = 0;
 	simManager.particleData[idx + 4] = 0;
 	simManager.particleData[idx + 5] = 0;
+
+	const newEnergy = computeTotalEnergy(
+		simManager.particleData,
+		config.gravitationalConstant,
+		config.softeningEpsilon * config.softeningEpsilon,
+	);
+	initialEnergy = newEnergy;
+	energyDrift = 0;
+	const energyEl = document.getElementById("energy-drift");
+	if (energyEl) energyEl.innerText = "0.0000%";
+	lastEnergyCheck = performance.now();
 };
 
 config.resetGalaxy = () => {
@@ -137,7 +157,7 @@ function animationLoop() {
 		const frameTimeEl = document.getElementById("frame-time");
 		if (frameTimeEl) frameTimeEl.innerText = deltaTime.toFixed(2);
 	}
-	if (now - lastEnergyCheck > 500) {
+	if (now - lastEnergyCheck > 500 || lastEnergyCheck === 0) {
 		lastEnergyCheck = now;
 		const currentEnergy = computeTotalEnergy(
 			simManager.particleData,
