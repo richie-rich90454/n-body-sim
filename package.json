@@ -15,9 +15,9 @@
 		"format:json": "prettier --write \"**/*.json\""
 	},
 	"keywords": [],
-	"author": "",
+	"author": "richie-rich90454",
 	"license": "MIT",
-	"type": "commonjs",
+	"type": "module",
 	"dependencies": {
 		"katex": "^0.16.45",
 		"lil-gui": "^0.21.0",
