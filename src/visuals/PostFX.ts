@@ -17,8 +17,8 @@ export class PostFX {
 			0.4,
 			0.85,
 		);
-		this.bloomPass.threshold = 0.1;
-		this.bloomPass.strength = 1.2;
+		this.bloomPass.threshold = 0.5;
+		this.bloomPass.strength = 1.5;
 		this.bloomPass.radius = 0.8;
 
 		this.composer.addPass(this.bloomPass);

@@ -16,7 +16,7 @@ export class SceneRenderer {
 
 	constructor() {
 		this.scene = new Scene();
-		this.scene.background = new Color(0x050510);
+		this.scene.background = new Color(0x000000);
 
 		this.camera = new PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 5000);
 		this.camera.position.set(0, 300, 800);
