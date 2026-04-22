@@ -204,27 +204,95 @@ export class ParticleSystem {
 	}
 
 	private createBlackHoleSprite() {
+		const size = 512;
 		const canvas = document.createElement("canvas");
-		canvas.width = 256;
-		canvas.height = 256;
+		canvas.width = size;
+		canvas.height = size;
 		const ctx = canvas.getContext("2d");
 		if (!ctx) return;
-		const gradient = ctx.createRadialGradient(128, 128, 0, 128, 128, 128);
-		gradient.addColorStop(0, "rgba(255, 220, 150, 1)");
-		gradient.addColorStop(0.2, "rgba(255, 120, 30, 0.9)");
-		gradient.addColorStop(0.5, "rgba(200, 50, 10, 0.6)");
-		gradient.addColorStop(0.8, "rgba(80, 10, 2, 0.2)");
-		gradient.addColorStop(1, "rgba(0, 0, 0, 0)");
-		ctx.fillStyle = gradient;
-		ctx.fillRect(0, 0, 256, 256);
+
+		const centerX = size / 2;
+		const centerY = size / 2;
+
+		ctx.fillStyle = "#000000";
+		ctx.fillRect(0, 0, size, size);
+
+		const ringImageData = ctx.createImageData(size, size);
+		const data = ringImageData.data;
+
+		const innerRadius = 50;
+		const outerRadius = 120;
+		const voidRadius = 40;
+
+		for (let py = 0; py < size; py++) {
+			for (let px = 0; px < size; px++) {
+				const dx = px - centerX;
+				const dy = py - centerY;
+				const r = Math.sqrt(dx * dx + dy * dy);
+
+				if (r < voidRadius || r > outerRadius + 15) continue;
+
+				let intensity = 0;
+				if (r >= innerRadius && r <= outerRadius) {
+					const t = (r - innerRadius) / (outerRadius - innerRadius);
+					intensity = Math.sin(t * Math.PI) * 1.0;
+				} else if (r > voidRadius && r < innerRadius) {
+					intensity = Math.pow((r - voidRadius) / (innerRadius - voidRadius), 1.5) * 0.5;
+				} else if (r > outerRadius) {
+					intensity = (1 - (r - outerRadius) / 18) * 0.4;
+				}
+
+				if (intensity <= 0.01) continue;
+
+				const verticalBias = 0.6 + 0.5 * (dy / r);
+				const asymmetry = Math.max(0.3, Math.min(1.3, verticalBias));
+				intensity *= asymmetry;
+
+				const horizontalBias = 0.9 + 0.2 * (dx / r);
+				intensity *= horizontalBias;
+
+				const warmness = Math.max(0, Math.min(1, (dy / r) * 0.7 + 0.5));
+
+				let R = Math.floor(255 * (1.0 * warmness + 0.8 * (1 - warmness)) * intensity);
+				let G = Math.floor(200 * warmness * intensity + 60 * (1 - warmness) * intensity);
+				let B = Math.floor(80 * warmness * intensity + 20 * (1 - warmness) * intensity);
+
+				if (intensity > 0.05) {
+					const idx = (py * size + px) * 4;
+					data[idx] = Math.min(255, R);
+					data[idx + 1] = Math.min(255, G);
+					data[idx + 2] = Math.min(255, B);
+					data[idx + 3] = Math.floor(intensity * 200);
+				}
+			}
+		}
+
+		ctx.putImageData(ringImageData, 0, 0);
+
+		const outerGlow = ctx.createRadialGradient(
+			centerX,
+			centerY,
+			innerRadius,
+			centerX,
+			centerY,
+			outerRadius + 35,
+		);
+		outerGlow.addColorStop(0, "rgba(255, 140, 40, 0.25)");
+		outerGlow.addColorStop(1, "rgba(80, 30, 10, 0)");
+		ctx.fillStyle = outerGlow;
+		ctx.beginPath();
+		ctx.arc(centerX, centerY, outerRadius + 35, 0, Math.PI * 2);
+		ctx.fill();
+
 		const texture = new CanvasTexture(canvas);
 		const material = new SpriteMaterial({
 			map: texture,
 			blending: AdditiveBlending,
 			depthWrite: false,
 		});
+
 		this.blackHoleSprite = new Sprite(material);
-		this.blackHoleSprite.scale.set(150, 150, 1);
+		this.blackHoleSprite.scale.set(180, 180, 1);
 		this.blackHoleSprite.visible = false;
 	}
 
