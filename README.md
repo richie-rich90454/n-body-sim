@@ -16,11 +16,11 @@ A high-performance, multi-threaded N-body particle simulation built with pure Ty
 
 ## Features
 
-- **Brute-force N-body simulation** with O(N^2) gravitational force computation.
+- **Brute-force N-body simulation** with O(N²) gravitational force computation.
 - **Web Worker based multi-threading** – workload distributed across all available CPU cores using dedicated workers.
 - **Zero-copy data transfer** – `Float32Array` buffers are transferred via `postMessage` without serialization overhead.
 - **Symplectic Leapfrog integrator** – conserves energy significantly better than naive Euler methods.
-- **Real-time 3D visualization** powered by Three.js with bloom post-processing for a neon aesthetic.
+- **Real-time 3D visualization** powered by Three.js with bloom post-processing and a realistic M87*-style black hole sprite.
 - **Fully interactive parameter control** – adjust gravitational constant, softening factor, time step, and more via a `lil-gui` panel.
 - **Dynamic particle count adjustment** – scale the simulation from 1,000 to 20,000 particles without reloading.
 - **Built-in performance metrics** – live FPS, frame time, and total energy drift displayed on screen.
@@ -31,12 +31,12 @@ A high-performance, multi-threaded N-body particle simulation built with pure Ty
 
 | Category          | Technology                         |
 | ----------------- | ---------------------------------- |
-| Language          | TypeScript 5.4+                    |
-| Build Tool        | Vite 5+                            |
+| Language          | TypeScript 6.0                     |
+| Build Tool        | Vite 8                             |
 | 3D Rendering      | Three.js r184                      |
 | Post-Processing   | postprocessing (UnrealBloomPass)   |
-| UI Controls       | lil-gui                            |
-| Math Rendering    | KaTeX                              |
+| UI Controls       | lil-gui v0.21                      |
+| Math Rendering    | KaTeX v0.16.45                     |
 | Concurrency       | Web Workers (native)               |
 | Memory Management | Float32Array, Transferable objects |
 
@@ -45,8 +45,8 @@ A high-performance, multi-threaded N-body particle simulation built with pure Ty
 Clone the repository and install dependencies:
 
 ```bash
-git clone https://github.com/yourusername/nbody-gravitational-dynamics.git
-cd nbody-gravitational-dynamics
+git clone https://github.com/richie-rich90454/nbody-sim.git
+cd nbody-sim
 npm install
 ```
 
@@ -80,7 +80,7 @@ The control panel on the right (provided by `lil-gui`) allows real-time adjustme
 
 ### Key Interactions
 
-- **Inject Black Hole** – converts the central particle into a supermassive object, instantly altering orbital dynamics.
+- **Inject Black Hole** – selects the most distant particle and converts it into a supermassive black hole (mass 150,000), visualized as an asymmetric glowing ring.
 - **Reset Galaxy** – regenerates the initial galaxy configuration using the current particle count.
 - **Particle Count Slider** – changes the number of particles; the simulation resets automatically.
 
@@ -91,14 +91,14 @@ The control panel on the right (provided by `lil-gui`) allows real-time adjustme
 The simulation implements Newton's law of universal gravitation with a softening term to avoid singularities:
 
 ```
-F_ij = G * (m_i * m_j) / (r_ij^2 + epsilon^2)^(3/2) * r_ij
+F_ij = G * (m_i * m_j) / (r_ij² + ε²)^(3/2) * r_ij
 ```
 
 The net force on each particle is the vector sum of contributions from all other particles (superposition principle).
 
 ### Integration Scheme
 
-The equations of motion are integrated using the **Leapfrog (Stormer-Verlet)** algorithm, a second-order symplectic integrator. For each time step `dt`:
+The equations of motion are integrated using the **Leapfrog (Störmer-Verlet)** algorithm, a second-order symplectic integrator. For each time step `dt`:
 
 1. **Half-kick**: `v(t + dt/2) = v(t) + a(t) * dt/2`
 2. **Drift**: `x(t + dt) = x(t) + v(t + dt/2) * dt`
@@ -116,9 +116,9 @@ The master `Float32Array` (storing positions, velocities, and masses for all par
 | Parameter | Range | Description |
 | --- | --- | --- |
 | **G Constant** | 0.1 – 2.0 | Scales the overall strength of gravitational attraction. |
-| **Softening (epsilon)** | 1.0 – 50.0 | Smoothing factor added to the distance squared to prevent singularities. |
-| **Singular Mass** | 5,000 – 500,000 | Mass assigned to the central particle when "Inject Black Hole" is pressed. |
-| **Time Step (dt)** | 0.005 – 0.05 | Integration step size. Larger values speed up the simulation but reduce accuracy. |
+| **Softening (ε)** | 1.0 – 50.0 | Smoothing factor added to the distance squared to prevent singularities. |
+| **Singular Mass** | 5,000 – 500,000 | Mass assigned to the selected particle when "Inject Black Hole" is pressed. |
+| **Time Step (Δt)** | 0.005 – 0.05 | Integration step size. Larger values speed up the simulation but reduce accuracy. |
 | **Sub-steps per frame** | 1 – 5 | Number of integration steps performed per rendered frame. |
 | **Time Scale** | 0.1 – 3.0 | Multiplier for the simulation speed (does not affect accuracy). |
 | **Point Size** | 0.5 – 8.0 | Rendered size of each particle. |
@@ -150,14 +150,17 @@ src/
 │   └── PhysicsEngine.ts        # Galaxy initialization, constants (STRIDE = 7)
 ├── simulation/
 │   ├── SimulationManager.ts    # Main-thread orchestrator, worker pool management
-│   └── physics.worker.ts       # O(N^2) force calculation and Leapfrog integration
+│   └── physics.worker.ts       # O(N²) force calculation and Leapfrog integration
 ├── visuals/
 │   ├── SceneRenderer.ts        # Three.js scene, camera, lighting, OrbitControls
-│   ├── ParticleSystem.ts       # BufferGeometry management, velocity-to-color mapping
+│   ├── ParticleSystem.ts       # Multi-layer particle rendering with custom shaders
 │   ├── PostFX.ts               # UnrealBloomPass composer setup
 │   └── UIController.ts         # lil-gui panel definition and SimConfig interface
 ├── script.ts                   # Application entry point, animation loop, UI modal
 ├── style.css                   # Minimal overlay styles (Courier New, Noto Sans for modal)
+├── ui.ts                       # UI helper functions (explanations injection, FPS/energy updates)
+├── explanations.ts             # KaTeX-rendered educational content
+├── simulation.ts               # Core simulation state, energy calculation, animation loop
 └── vite-env.d.ts               # Vite type declarations for CSS imports
 
 index.html                      # Barebones HTML shell with overlay containers
