@@ -55,8 +55,8 @@ export const explanations = {
     <p><span class="highlight">Δt (Time Step):</span> The fundamental integration step size.</p>
     <p><span class="highlight">Sub‑steps per frame:</span> Divides each Δt into multiple smaller increments, effectively reducing the integration error without slowing down the visual playback.</p>
     <h3>GALACTIC NUCLEUS & BLACK HOLE</h3>
-    <p>The simulation initializes with a central particle of mass 20,000 — significantly larger than the average stellar particle. This represents the dense galactic nucleus or a seed supermassive black hole, consistent with observations that most galaxies harbor a central massive object.</p>
-    <p>Clicking <span class="highlight">"Inject Black Hole"</span> selects a distant particle, sets its mass to the configured <span class="highlight">Singular Mass</span> (default 150,000), and zeroes its velocity. This simulates a rogue supermassive black hole plunging through the galaxy, often ejecting nearby particles via the gravitational slingshot effect.</p>
+    <p>The simulation initializes with a central particle of mass 20,000 — significantly larger than the average stellar particle. This represents the dense galactic nucleus or a seed supermassive black hole, consistent with observations that most galaxies harbor a central massive object. No visual black hole sprite appears at startup because the mass is below the display threshold of 50,000.</p>
+    <p>Clicking <span class="highlight">"Inject Black Hole"</span> selects the most distant particle, sets its mass to the configured <span class="highlight">Singular Mass</span> (default 150,000), and zeroes its velocity. This simulates a rogue supermassive black hole plunging through the galaxy, often ejecting nearby particles via the gravitational slingshot effect. The black hole is visualized as a glowing asymmetric ring mimicking the M87* accretion disk, with the host particle hidden from view.</p>
     <h3>ENERGY DRIFT</h3>
     <p>Total mechanical energy is the sum of kinetic and gravitational potential energies:</p>
     <div class="equation">${renderFormula(eq.energy)}</div>
@@ -77,13 +77,13 @@ export const explanations = {
     <div class="equation">${renderFormula(eq.x_new)}</div>
     <p>A larger ${renderInline("\\Delta t")} makes the simulation run faster but increases the approximation error — watch the <span class="highlight">Energy Drift</span> percentage to see the cumulative effect.</p>
     <h3>GALACTIC NUCLEUS & BLACK HOLE</h3>
-    <p>The simulation begins with a central massive particle (mass 20,000) representing the dense core of a galaxy. Most real galaxies contain a supermassive black hole or a compact star cluster at their center.</p>
-    <p>Clicking <span class="highlight">"Inject Black Hole"</span> selects a distant particle and sets its mass to the value from the <span class="highlight">Singular Mass</span> slider (default 150,000). This simulates a wandering supermassive black hole, causing nearby particles to be flung outward at high speeds due to the gravitational slingshot effect.</p>
+    <p>The simulation begins with a central massive particle (mass 20,000) representing the dense core of a galaxy. Most real galaxies contain a supermassive black hole or a compact star cluster at their center. The black hole sprite is hidden until a mass threshold of 50,000 is exceeded.</p>
+    <p>Clicking <span class="highlight">"Inject Black Hole"</span> selects the farthest particle and sets its mass to the value from the <span class="highlight">Singular Mass</span> slider (default 150,000). This simulates a wandering supermassive black hole, causing nearby particles to be flung outward at high speeds due to the gravitational slingshot effect. The black hole appears as a glowing ring similar to the M87* image.</p>
     <h3>CONTROLS</h3>
     <p><span class="highlight">G:</span> Gravitational constant — scales the strength of gravity.</p>
     <p><span class="highlight">ε (softening):</span> Prevents unrealistically large accelerations when particles pass very close to one another.</p>
     <p><span class="highlight">Δt:</span> Time step for integration. Decreasing Δt improves accuracy at the cost of slower visual progression.</p>
-    <p><span class="highlight">Inject Black Hole:</span> Turns a distant particle into a supermassive black hole, dramatically warping the surrounding orbits.</p>
+    <p><span class="highlight">Inject Black Hole:</span> Turns the most distant particle into a supermassive black hole, dramatically warping the surrounding orbits.</p>
   `,
 	middle: `
     <p>A computer model of a galaxy, built using <strong>Algebra I & II</strong> and introductory physical science concepts. No calculus is required to understand the core ideas.</p>
@@ -99,12 +99,12 @@ export const explanations = {
     <h3>WHY "SOFTENING"?</h3>
     <p>When two stars get extremely close, the ${renderInline("1/r^2")} term would become enormous, causing them to shoot apart at unrealistic speeds. We add a small positive number ${renderInline("\\varepsilon")} to the distance to keep the calculation stable.</p>
     <h3>THE CENTER OF THE GALAXY</h3>
-    <p>The galaxy starts with a very massive star at its center (about 8,000 times heavier than a normal star). This represents the dense core found in real galaxies. Pressing <span class="highlight">"Inject Black Hole"</span> turns a distant star into an even heavier black hole, which can fling nearby stars away at high speeds.</p>
+    <p>The galaxy starts with a very massive star at its center (about 8,000 times heavier than a normal star). This represents the dense core found in real galaxies. The black hole image only appears when a star becomes more than 50,000 times heavier. Pressing <span class="highlight">"Inject Black Hole"</span> turns the farthest star into an even heavier black hole, which can fling nearby stars away at high speeds.</p>
     <h3>SLIDERS & BUTTONS</h3>
     <p><span class="highlight">G:</span> Adjusts the overall strength of gravity.</p>
     <p><span class="highlight">ε (softening):</span> Controls how much we smooth out very close encounters.</p>
     <p><span class="highlight">Δt:</span> Changes the size of the time step. Larger steps make the simulation run faster but may look jerky or physically inaccurate.</p>
-    <p><span class="highlight">Inject Black Hole:</span> Transforms a distant star into an extremely massive object, dramatically warping the orbits of surrounding stars.</p>
+    <p><span class="highlight">Inject Black Hole:</span> Transforms the farthest star into an extremely massive object, dramatically warping the orbits of surrounding stars.</p>
   `,
 	basic: `
     <p>This is a model of stars moving under the force of gravity. No advanced math is required to enjoy it!</p>
@@ -115,7 +115,7 @@ export const explanations = {
     <h3>HOW DOES THE COMPUTER MOVE THE STARS?</h3>
     <p>The computer looks at where every star is, figures out how hard they are pulling on each other, and then nudges each star by a very small amount. It repeats this process over and over — just like a flipbook — to create smooth motion.</p>
     <h3>THE BIG STAR IN THE MIDDLE</h3>
-    <p>Right from the start, there is a very heavy star at the center of the galaxy. This is like the center of a real galaxy, where a supermassive black hole or a dense cluster of stars usually sits. Pressing <span class="highlight">"Inject Black Hole"</span> makes a distant star even heavier, causing nearby stars to be thrown outward.</p>
+    <p>Right from the start, there is a very heavy star at the center of the galaxy. This is like the center of a real galaxy, where a supermassive black hole or a dense cluster of stars usually sits. The black hole picture only shows up when a star gets heavy enough. Pressing <span class="highlight">"Inject Black Hole"</span> makes the farthest star even heavier, causing nearby stars to be thrown outward.</p>
     <h3>WHAT DO THE SLIDERS DO?</h3>
     <p><span class="highlight">G:</span> Makes gravity stronger or weaker.</p>
     <p><span class="highlight">ε (epsilon):</span> Prevents stars from flying away unrealistically fast when they get too close.</p>
@@ -127,7 +127,7 @@ export const explanations = {
 	tech: `
     <h3>FRONTEND & RENDERING</h3>
     <p><span class="tech-badge">Three.js r184</span> <span class="tech-badge">postprocessing v6.39</span></p>
-    <p>WebGL rendering with the UnrealBloomPass effect produces a vivid neon glow. No custom GLSL shaders are used — the entire rendering pipeline is configured via standard Three.js and postprocessing APIs.</p>
+    <p>WebGL rendering with the UnrealBloomPass effect produces a vivid neon glow. Custom fragment shaders create the black hole accretion disk resembling the M87* image. The galaxy is composed of multiple particle layers (bulge, dust, halo) for realistic depth.</p>
     <h3>UI & CONTROLS</h3>
     <p><span class="tech-badge">lil‑gui v0.21</span></p>
     <p>A floating control panel generated entirely by lil‑gui. No custom CSS is required for the controls, ensuring a clean separation between presentation and logic.</p>
