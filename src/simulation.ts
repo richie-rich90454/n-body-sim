@@ -88,6 +88,9 @@ export function createSimulation(particleCount: number) {
 	}
 	particleSystem = new ParticleSystem(particleCount);
 	renderer.scene.add(particleSystem.points);
+	renderer.scene.add(particleSystem.bulgePoints);
+	renderer.scene.add(particleSystem.dustPoints);
+	renderer.scene.add(particleSystem.haloPoints);
 	if (particleSystem.blackHoleSprite) renderer.scene.add(particleSystem.blackHoleSprite);
 	simManager.onUpdate = (data) => {
 		particleSystem.update(data, config.particleSize, blackHoleIndex);
