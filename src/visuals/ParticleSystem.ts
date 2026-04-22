@@ -102,7 +102,7 @@ export class ParticleSystem {
           vec2 center = gl_PointCoord - vec2(0.5);
           float r = length(center);
           if (r > 0.5) discard;
-          float alpha = pow(1.0 - r * 1.8, 0.7);
+          float alpha = pow(1.0 - r * 1.6, 0.8);
           gl_FragColor = vec4(vColor, alpha);
         }
       `,
@@ -114,7 +114,7 @@ export class ParticleSystem {
 
 	private createBulgeMaterial(): ShaderMaterial {
 		return new ShaderMaterial({
-			uniforms: { pointSize: { value: 3.5 } },
+			uniforms: { pointSize: { value: 3.2 } },
 			vertexShader: `
         attribute vec3 color;
         varying vec3 vColor;
@@ -132,8 +132,9 @@ export class ParticleSystem {
           vec2 center = gl_PointCoord - vec2(0.5);
           float r = length(center);
           if (r > 0.5) discard;
-          float glow = exp(-r * 2.2) * 1.6;
-          gl_FragColor = vec4(vColor * glow, glow * 0.85);
+          float glow = exp(-r * 2.5) * 1.3;
+          vec3 warmColor = vColor * (0.9 + 0.3 * sin(gl_PointCoord.x * 3.14159));
+          gl_FragColor = vec4(warmColor * glow, glow * 0.8);
         }
       `,
 			transparent: true,
@@ -144,14 +145,14 @@ export class ParticleSystem {
 
 	private createDustMaterial(): ShaderMaterial {
 		return new ShaderMaterial({
-			uniforms: { pointSize: { value: 2.4 } },
+			uniforms: { pointSize: { value: 3.0 } },
 			vertexShader: `
         attribute vec3 color;
         varying vec3 vColor;
         uniform float pointSize;
         void main() {
           vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
-          gl_PointSize = pointSize * (320.0 / -mvPosition.z);
+          gl_PointSize = pointSize * (330.0 / -mvPosition.z);
           gl_Position = projectionMatrix * mvPosition;
           vColor = color;
         }
@@ -162,7 +163,7 @@ export class ParticleSystem {
           vec2 center = gl_PointCoord - vec2(0.5);
           float r = length(center);
           if (r > 0.5) discard;
-          float alpha = (1.0 - r * 1.4) * 0.7;
+          float alpha = (1.0 - r * 1.3) * 0.85;
           gl_FragColor = vec4(vColor, alpha);
         }
       `,
@@ -236,7 +237,7 @@ export class ParticleSystem {
 		const haloCol = this.haloGeometry.attributes.color.array as Float32Array;
 
 		for (let i = 0; i < this.bulgeCount; i++) {
-			const r = Math.pow(Math.random(), 1.5) * 70;
+			const r = Math.pow(Math.random(), 1.6) * 65;
 			const theta = Math.random() * Math.PI * 2;
 			const phi = Math.acos(2 * Math.random() - 1);
 			const x = r * Math.sin(phi) * Math.cos(theta);
@@ -245,25 +246,25 @@ export class ParticleSystem {
 			bulgePos[i * 3] = x;
 			bulgePos[i * 3 + 1] = y;
 			bulgePos[i * 3 + 2] = z;
-			const mix = r / 70;
-			bulgeCol[i * 3] = 0.95;
-			bulgeCol[i * 3 + 1] = 0.7 + mix * 0.2;
-			bulgeCol[i * 3 + 2] = 0.4 + mix * 0.3;
+			const mix = r / 65;
+			bulgeCol[i * 3] = 1.0;
+			bulgeCol[i * 3 + 1] = 0.75 + mix * 0.25;
+			bulgeCol[i * 3 + 2] = 0.45 + mix * 0.35;
 		}
 
 		for (let i = 0; i < this.dustCount; i++) {
-			const r = 50 + Math.pow(Math.random(), 2.2) * 220;
+			const r = 40 + Math.pow(Math.random(), 2.0) * 240;
 			const theta = Math.random() * Math.PI * 2;
 			const x = r * Math.cos(theta);
-			const y = (Math.random() - 0.5) * 20;
+			const y = (Math.random() - 0.5) * 28;
 			const z = r * Math.sin(theta) * 0.35;
 			dustPos[i * 3] = x;
 			dustPos[i * 3 + 1] = y;
 			dustPos[i * 3 + 2] = z;
-			const dark = 0.18 + 0.22 * Math.random();
-			dustCol[i * 3] = dark * 0.9;
-			dustCol[i * 3 + 1] = dark * 0.65;
-			dustCol[i * 3 + 2] = dark * 0.45;
+			const bright = 0.35 + 0.3 * Math.random();
+			dustCol[i * 3] = bright * 0.9;
+			dustCol[i * 3 + 1] = bright * 0.7;
+			dustCol[i * 3 + 2] = bright * 0.5;
 		}
 
 		for (let i = 0; i < this.haloCount; i++) {
@@ -292,8 +293,8 @@ export class ParticleSystem {
 	public update(data: Float32Array, pointSize: number, blackHoleIdx: number) {
 		const mat = this.points.material as ShaderMaterial;
 		mat.uniforms.pointSize.value = pointSize;
-		(this.bulgePoints.material as ShaderMaterial).uniforms.pointSize.value = pointSize * 1.9;
-		(this.dustPoints.material as ShaderMaterial).uniforms.pointSize.value = pointSize * 1.3;
+		(this.bulgePoints.material as ShaderMaterial).uniforms.pointSize.value = pointSize * 1.8;
+		(this.dustPoints.material as ShaderMaterial).uniforms.pointSize.value = pointSize * 1.5;
 		(this.haloPoints.material as ShaderMaterial).uniforms.pointSize.value = pointSize * 0.7;
 		this.lastPointSize = pointSize;
 
@@ -322,18 +323,18 @@ export class ParticleSystem {
 			const t = Math.min(this.speeds[i] / maxSpeed, 1.0);
 			const dist = Math.sqrt(x * x + y * y + z * z) / 400;
 
-			let r = 0.4 + 0.45 * dist + t * 0.2;
-			let g = 0.5 + 0.5 * dist + t * 0.2;
-			let b = 0.9 + 0.3 * (1 - dist) + t * 0.15;
+			let r = 0.45 + 0.4 * dist + t * 0.2;
+			let g = 0.55 + 0.45 * dist + t * 0.2;
+			let b = 0.9 + 0.25 * (1 - dist) + t * 0.15;
 
 			r = Math.min(r, 1.0);
 			g = Math.min(g, 1.0);
 			b = Math.min(b, 1.0);
 
-			if (dist < 0.15) {
-				r = 0.9;
-				g = 0.7;
-				b = 0.4;
+			if (dist < 0.18) {
+				r = 0.95;
+				g = 0.75;
+				b = 0.45;
 			}
 
 			this.colorArray[posIdx] = r;
