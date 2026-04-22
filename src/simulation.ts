@@ -29,31 +29,9 @@ const postFX = new PostFX(renderer.renderer, renderer.scene, renderer.camera);
 let particleSystem: ParticleSystem;
 let simManager: SimulationManager;
 let blackHoleIndex = 0;
-
-export function createSimulation(particleCount: number) {
-	const initialData = initializeGalaxy(particleCount, GALAXY_RADIUS);
-	const workerCount = navigator.hardwareConcurrency || 4;
-	if (simManager) simManager.terminate();
-	simManager = new SimulationManager(initialData, workerCount);
-	if (particleSystem) {
-		renderer.scene.remove(particleSystem.points);
-		if (particleSystem.blackHoleSprite) renderer.scene.remove(particleSystem.blackHoleSprite);
-		particleSystem.dispose();
-	}
-	particleSystem = new ParticleSystem(particleCount);
-	renderer.scene.add(particleSystem.points);
-	if (particleSystem.blackHoleSprite) renderer.scene.add(particleSystem.blackHoleSprite);
-	simManager.onUpdate = (data) =>
-		particleSystem.update(data, config.particleSize, blackHoleIndex);
-	blackHoleIndex = 0;
-}
-
-let lastTime = performance.now();
-let frameCount = 0;
-let fpsTimer = performance.now();
-let lastEnergyCheck = performance.now();
 let initialEnergy = 0;
 let energyDrift = 0;
+let lastEnergyCheck = performance.now();
 
 function computeTotalEnergy(data: Float32Array, G: number, softeningSq: number): number {
 	const count = data.length / STRIDE;
@@ -86,6 +64,41 @@ function computeTotalEnergy(data: Float32Array, G: number, softeningSq: number):
 	return kinetic + potential;
 }
 
+function resetEnergyBaseline() {
+	const currentEnergy = computeTotalEnergy(
+		simManager.particleData,
+		config.gravitationalConstant,
+		config.softeningEpsilon * config.softeningEpsilon,
+	);
+	initialEnergy = currentEnergy;
+	energyDrift = 0;
+	updateEnergyDisplay(0);
+	lastEnergyCheck = performance.now();
+}
+
+export function createSimulation(particleCount: number) {
+	const initialData = initializeGalaxy(particleCount, GALAXY_RADIUS);
+	const workerCount = navigator.hardwareConcurrency || 4;
+	if (simManager) simManager.terminate();
+	simManager = new SimulationManager(initialData, workerCount);
+	if (particleSystem) {
+		renderer.scene.remove(particleSystem.points);
+		if (particleSystem.blackHoleSprite) renderer.scene.remove(particleSystem.blackHoleSprite);
+		particleSystem.dispose();
+	}
+	particleSystem = new ParticleSystem(particleCount);
+	renderer.scene.add(particleSystem.points);
+	if (particleSystem.blackHoleSprite) renderer.scene.add(particleSystem.blackHoleSprite);
+	simManager.onUpdate = (data) =>
+		particleSystem.update(data, config.particleSize, blackHoleIndex);
+	blackHoleIndex = 0;
+	resetEnergyBaseline();
+}
+
+let lastTime = performance.now();
+let frameCount = 0;
+let fpsTimer = performance.now();
+
 export function animationLoop() {
 	requestAnimationFrame(animationLoop);
 	const now = performance.now();
@@ -105,7 +118,6 @@ export function animationLoop() {
 			config.gravitationalConstant,
 			config.softeningEpsilon * config.softeningEpsilon,
 		);
-		if (initialEnergy === 0) initialEnergy = currentEnergy;
 		energyDrift = Math.abs((currentEnergy - initialEnergy) / initialEnergy) * 100;
 		updateEnergyDisplay(energyDrift);
 	}
@@ -154,20 +166,11 @@ export function injectBlackHole() {
 	simManager.particleData[idx + 3] = 0;
 	simManager.particleData[idx + 4] = 0;
 	simManager.particleData[idx + 5] = 0;
-	const newEnergy = computeTotalEnergy(
-		simManager.particleData,
-		config.gravitationalConstant,
-		config.softeningEpsilon * config.softeningEpsilon,
-	);
-	initialEnergy = newEnergy;
-	energyDrift = 0;
-	updateEnergyDisplay(0);
-	lastEnergyCheck = performance.now();
+	resetEnergyBaseline();
 }
 
 export function resetGalaxy() {
 	createSimulation(config.particleCount);
-	initialEnergy = 0;
 	blackHoleIndex = 0;
 }
 
