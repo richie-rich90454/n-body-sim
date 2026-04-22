@@ -89,8 +89,9 @@ export function createSimulation(particleCount: number) {
 	particleSystem = new ParticleSystem(particleCount);
 	renderer.scene.add(particleSystem.points);
 	if (particleSystem.blackHoleSprite) renderer.scene.add(particleSystem.blackHoleSprite);
-	simManager.onUpdate = (data) =>
+	simManager.onUpdate = (data) => {
 		particleSystem.update(data, config.particleSize, blackHoleIndex);
+	};
 	blackHoleIndex = 0;
 	resetEnergyBaseline();
 }
@@ -166,6 +167,7 @@ export function injectBlackHole() {
 	simManager.particleData[idx + 3] = 0;
 	simManager.particleData[idx + 4] = 0;
 	simManager.particleData[idx + 5] = 0;
+	particleSystem.update(simManager.particleData, config.particleSize, blackHoleIndex);
 	resetEnergyBaseline();
 }
 
