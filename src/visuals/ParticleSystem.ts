@@ -117,9 +117,13 @@ export class ParticleSystem {
 
 	private updateBlackHoleSprite(data: Float32Array, pointSize: number, blackHoleIdx: number) {
 		if (!this.blackHoleSprite) return;
+		if (blackHoleIdx < 0 || blackHoleIdx >= this.count) {
+			this.blackHoleSprite.visible = false;
+			return;
+		}
 		const base = blackHoleIdx * STRIDE;
 		const mass = data[base + 6];
-		if (mass > 10000) {
+		if (mass > 50000) {
 			this.blackHoleSprite.position.set(data[base], data[base + 1], data[base + 2]);
 			this.blackHoleSprite.visible = true;
 			const scale = pointSize * 10.0;
