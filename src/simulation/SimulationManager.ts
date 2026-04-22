@@ -65,6 +65,8 @@ export class SimulationManager {
 		const chunkSize = Math.ceil(count / workerCount);
 		this.busyWorkers = workerCount;
 
+		const allDataCopy = new Float32Array(this.particleData);
+
 		for (let w = 0; w < workerCount; w++) {
 			const startIdx = w * chunkSize;
 			const endIdx = Math.min(startIdx + chunkSize, count);
@@ -79,7 +81,7 @@ export class SimulationManager {
 			this.workers[w].postMessage(
 				{
 					myData: slice,
-					allData: this.particleData,
+					allData: allDataCopy,
 					startIdx,
 					endIdx,
 					count,

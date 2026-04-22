@@ -167,7 +167,7 @@ export function injectBlackHole() {
 	simManager.particleData[idx + 3] = 0;
 	simManager.particleData[idx + 4] = 0;
 	simManager.particleData[idx + 5] = 0;
-	particleSystem.update(simManager.particleData, config.particleSize, blackHoleIndex);
+	simManager.reset(simManager.particleData);
 	resetEnergyBaseline();
 }
 
