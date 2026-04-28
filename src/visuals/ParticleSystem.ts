@@ -15,16 +15,19 @@ export class ParticleSystem {
 	public bulgePoints: Points;
 	public dustPoints: Points;
 	public haloPoints: Points;
+	public backgroundStars: Points | null = null;
 	private geometry: BufferGeometry;
 	private bulgeGeometry: BufferGeometry;
 	private dustGeometry: BufferGeometry;
 	private haloGeometry: BufferGeometry;
+	private backgroundGeometry: BufferGeometry;
 	private count: number;
 	private bulgeCount: number;
 	private dustCount: number;
 	private haloCount: number;
 	private positionArray: Float32Array;
 	private colorArray: Float32Array;
+	private sizeSeedArray: Float32Array;
 	private bulgePositionArray: Float32Array;
 	private bulgeColorArray: Float32Array;
 	private dustPositionArray: Float32Array;
@@ -34,6 +37,7 @@ export class ParticleSystem {
 	public blackHoleSprite: Sprite | null = null;
 	private speeds: Float32Array;
 	private lastPointSize = 1.8;
+	private time = 0;
 
 	private bulgeMap: Uint32Array;
 	private dustMap: Uint32Array;
@@ -56,9 +60,13 @@ export class ParticleSystem {
 		this.bulgeGeometry = new BufferGeometry();
 		this.dustGeometry = new BufferGeometry();
 		this.haloGeometry = new BufferGeometry();
+		this.backgroundGeometry = new BufferGeometry();
 
 		this.positionArray = new Float32Array(count * 3);
 		this.colorArray = new Float32Array(count * 3);
+		this.sizeSeedArray = new Float32Array(count);
+		for (let i = 0; i < count; i++) this.sizeSeedArray[i] = Math.random();
+
 		this.bulgePositionArray = new Float32Array(this.bulgeCount * 3);
 		this.bulgeColorArray = new Float32Array(this.bulgeCount * 3);
 		this.dustPositionArray = new Float32Array(this.dustCount * 3);
@@ -69,10 +77,8 @@ export class ParticleSystem {
 
 		this.geometry.setAttribute("position", new BufferAttribute(this.positionArray, 3));
 		this.geometry.setAttribute("color", new BufferAttribute(this.colorArray, 3));
-		this.bulgeGeometry.setAttribute(
-			"position",
-			new BufferAttribute(this.bulgePositionArray, 3),
-		);
+		this.geometry.setAttribute("sizeSeed", new BufferAttribute(this.sizeSeedArray, 1));
+		this.bulgeGeometry.setAttribute("position", new BufferAttribute(this.bulgePositionArray, 3));
 		this.bulgeGeometry.setAttribute("color", new BufferAttribute(this.bulgeColorArray, 3));
 		this.dustGeometry.setAttribute("position", new BufferAttribute(this.dustPositionArray, 3));
 		this.dustGeometry.setAttribute("color", new BufferAttribute(this.dustColorArray, 3));
@@ -91,18 +97,22 @@ export class ParticleSystem {
 
 		this.createBlackHoleSprite();
 		this.initializeStaticLayers();
+		this.createBackgroundStars();
 	}
 
 	private createMainMaterial(): ShaderMaterial {
 		return new ShaderMaterial({
-			uniforms: { pointSize: { value: 1.8 } },
+			uniforms: { pointSize: { value: 1.8 }, time: { value: 0 } },
 			vertexShader: `
         attribute vec3 color;
+        attribute float sizeSeed;
         varying vec3 vColor;
         uniform float pointSize;
+        uniform float time;
         void main() {
+          float twinkle = 0.7 + 0.5 * sin(time * 3.0 + sizeSeed * 15.0);
           vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
-          gl_PointSize = pointSize * (300.0 / -mvPosition.z);
+          gl_PointSize = pointSize * (300.0 / -mvPosition.z) * twinkle;
           gl_Position = projectionMatrix * mvPosition;
           vColor = color;
         }
@@ -125,14 +135,16 @@ export class ParticleSystem {
 
 	private createBulgeMaterial(): ShaderMaterial {
 		return new ShaderMaterial({
-			uniforms: { pointSize: { value: 3.2 } },
+			uniforms: { pointSize: { value: 3.2 }, time: { value: 0 } },
 			vertexShader: `
         attribute vec3 color;
         varying vec3 vColor;
         uniform float pointSize;
+        uniform float time;
         void main() {
+          float twinkle = 0.8 + 0.4 * sin(time * 2.5 + position.x * 0.5);
           vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
-          gl_PointSize = pointSize * (350.0 / -mvPosition.z);
+          gl_PointSize = pointSize * (350.0 / -mvPosition.z) * twinkle;
           gl_Position = projectionMatrix * mvPosition;
           vColor = color;
         }
@@ -156,14 +168,16 @@ export class ParticleSystem {
 
 	private createDustMaterial(): ShaderMaterial {
 		return new ShaderMaterial({
-			uniforms: { pointSize: { value: 3.0 } },
+			uniforms: { pointSize: { value: 3.0 }, time: { value: 0 } },
 			vertexShader: `
         attribute vec3 color;
         varying vec3 vColor;
         uniform float pointSize;
+        uniform float time;
         void main() {
+          float twinkle = 0.6 + 0.6 * sin(time * 4.0 + position.y * 0.8);
           vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
-          gl_PointSize = pointSize * (330.0 / -mvPosition.z);
+          gl_PointSize = pointSize * (330.0 / -mvPosition.z) * twinkle;
           gl_Position = projectionMatrix * mvPosition;
           vColor = color;
         }
@@ -186,14 +200,16 @@ export class ParticleSystem {
 
 	private createHaloMaterial(): ShaderMaterial {
 		return new ShaderMaterial({
-			uniforms: { pointSize: { value: 1.1 } },
+			uniforms: { pointSize: { value: 1.1 }, time: { value: 0 } },
 			vertexShader: `
         attribute vec3 color;
         varying vec3 vColor;
         uniform float pointSize;
+        uniform float time;
         void main() {
+          float twinkle = 0.85 + 0.3 * sin(time * 1.8 + position.z * 0.6);
           vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
-          gl_PointSize = pointSize * (260.0 / -mvPosition.z);
+          gl_PointSize = pointSize * (260.0 / -mvPosition.z) * twinkle;
           gl_Position = projectionMatrix * mvPosition;
           vColor = color;
         }
@@ -212,6 +228,55 @@ export class ParticleSystem {
 			blending: AdditiveBlending,
 			depthWrite: false,
 		});
+	}
+
+	private createBackgroundStars() {
+		const starCount = 4000;
+		const radius = 800;
+		const positions = new Float32Array(starCount * 3);
+		const colors = new Float32Array(starCount * 3);
+		for (let i = 0; i < starCount; i++) {
+			const theta = Math.random() * Math.PI * 2;
+			const phi = Math.acos(2 * Math.random() - 1);
+			const r = radius * (0.7 + Math.random() * 0.3);
+			positions[i*3] = r * Math.sin(phi) * Math.cos(theta);
+			positions[i*3+1] = r * Math.sin(phi) * Math.sin(theta);
+			positions[i*3+2] = r * Math.cos(phi);
+			const intensity = 0.1 + Math.random() * 0.3;
+			colors[i*3] = intensity * 0.8;
+			colors[i*3+1] = intensity * 0.9;
+			colors[i*3+2] = intensity;
+		}
+		this.backgroundGeometry.setAttribute("position", new BufferAttribute(positions, 3));
+		this.backgroundGeometry.setAttribute("color", new BufferAttribute(colors, 3));
+		const starMaterial = new ShaderMaterial({
+			uniforms: { pointSize: { value: 0.6 }, time: { value: 0 } },
+			vertexShader: `
+        attribute vec3 color;
+        varying vec3 vColor;
+        uniform float pointSize;
+        void main() {
+          vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
+          gl_PointSize = pointSize * (200.0 / -mvPosition.z);
+          gl_Position = projectionMatrix * mvPosition;
+          vColor = color;
+        }
+      `,
+			fragmentShader: `
+        varying vec3 vColor;
+        void main() {
+          vec2 center = gl_PointCoord - vec2(0.5);
+          float r = length(center);
+          if (r > 0.5) discard;
+          float alpha = (1.0 - r) * 0.8;
+          gl_FragColor = vec4(vColor, alpha);
+        }
+      `,
+			transparent: true,
+			blending: AdditiveBlending,
+			depthWrite: false,
+		});
+		this.backgroundStars = new Points(this.backgroundGeometry, starMaterial);
 	}
 
 	private createBlackHoleSprite() {
@@ -369,12 +434,20 @@ export class ParticleSystem {
 		this.haloGeometry.attributes.color.needsUpdate = true;
 	}
 
-	public update(data: Float32Array, pointSize: number, blackHoleIdx: number) {
+	public update(data: Float32Array, pointSize: number, blackHoleIdx: number, deltaTime: number = 0.016) {
+		this.time += deltaTime;
 		const mat = this.points.material as ShaderMaterial;
 		mat.uniforms.pointSize.value = pointSize;
+		mat.uniforms.time.value = this.time;
 		(this.bulgePoints.material as ShaderMaterial).uniforms.pointSize.value = pointSize * 1.8;
+		(this.bulgePoints.material as ShaderMaterial).uniforms.time.value = this.time;
 		(this.dustPoints.material as ShaderMaterial).uniforms.pointSize.value = pointSize * 1.5;
+		(this.dustPoints.material as ShaderMaterial).uniforms.time.value = this.time;
 		(this.haloPoints.material as ShaderMaterial).uniforms.pointSize.value = pointSize * 0.7;
+		(this.haloPoints.material as ShaderMaterial).uniforms.time.value = this.time;
+		if (this.backgroundStars) {
+			(this.backgroundStars.material as ShaderMaterial).uniforms.time.value = this.time;
+		}
 		this.lastPointSize = pointSize;
 
 		let maxSpeed = 0.1;
@@ -484,10 +557,12 @@ export class ParticleSystem {
 		this.bulgeGeometry.dispose();
 		this.dustGeometry.dispose();
 		this.haloGeometry.dispose();
+		this.backgroundGeometry.dispose();
 		(this.points.material as ShaderMaterial).dispose();
 		(this.bulgePoints.material as ShaderMaterial).dispose();
 		(this.dustPoints.material as ShaderMaterial).dispose();
 		(this.haloPoints.material as ShaderMaterial).dispose();
+		if (this.backgroundStars) (this.backgroundStars.material as ShaderMaterial).dispose();
 		if (this.blackHoleSprite) {
 			this.blackHoleSprite.material.dispose();
 		}
