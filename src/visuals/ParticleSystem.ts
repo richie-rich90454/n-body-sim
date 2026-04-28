@@ -35,11 +35,22 @@ export class ParticleSystem {
 	private speeds: Float32Array;
 	private lastPointSize = 1.8;
 
+	private bulgeMap: Uint32Array;
+	private dustMap: Uint32Array;
+	private haloMap: Uint32Array;
+
 	constructor(count: number) {
 		this.count = count;
 		this.bulgeCount = Math.floor(count * 0.12);
 		this.dustCount = Math.floor(count * 0.18);
 		this.haloCount = count * 2;
+
+		this.bulgeMap = new Uint32Array(this.bulgeCount);
+		this.dustMap = new Uint32Array(this.dustCount);
+		this.haloMap = new Uint32Array(this.haloCount);
+		for (let i = 0; i < this.bulgeCount; i++) this.bulgeMap[i] = Math.floor(Math.random() * count);
+		for (let i = 0; i < this.dustCount; i++) this.dustMap[i] = Math.floor(Math.random() * count);
+		for (let i = 0; i < this.haloCount; i++) this.haloMap[i] = Math.floor(Math.random() * count);
 
 		this.geometry = new BufferGeometry();
 		this.bulgeGeometry = new BufferGeometry();
@@ -419,6 +430,33 @@ export class ParticleSystem {
 
 		this.geometry.attributes.position.needsUpdate = true;
 		this.geometry.attributes.color.needsUpdate = true;
+
+		for (let i = 0; i < this.bulgeCount; i++) {
+			const srcIdx = this.bulgeMap[i] * 3;
+			const dstIdx = i * 3;
+			this.bulgePositionArray[dstIdx] = this.positionArray[srcIdx];
+			this.bulgePositionArray[dstIdx + 1] = this.positionArray[srcIdx + 1];
+			this.bulgePositionArray[dstIdx + 2] = this.positionArray[srcIdx + 2];
+		}
+		this.bulgeGeometry.attributes.position.needsUpdate = true;
+
+		for (let i = 0; i < this.dustCount; i++) {
+			const srcIdx = this.dustMap[i] * 3;
+			const dstIdx = i * 3;
+			this.dustPositionArray[dstIdx] = this.positionArray[srcIdx];
+			this.dustPositionArray[dstIdx + 1] = this.positionArray[srcIdx + 1];
+			this.dustPositionArray[dstIdx + 2] = this.positionArray[srcIdx + 2];
+		}
+		this.dustGeometry.attributes.position.needsUpdate = true;
+
+		for (let i = 0; i < this.haloCount; i++) {
+			const srcIdx = this.haloMap[i] * 3;
+			const dstIdx = i * 3;
+			this.haloPositionArray[dstIdx] = this.positionArray[srcIdx];
+			this.haloPositionArray[dstIdx + 1] = this.positionArray[srcIdx + 1];
+			this.haloPositionArray[dstIdx + 2] = this.positionArray[srcIdx + 2];
+		}
+		this.haloGeometry.attributes.position.needsUpdate = true;
 
 		this.updateBlackHoleSprite(data, pointSize, blackHoleIdx);
 	}
