@@ -2,8 +2,24 @@ export const STRIDE = 7;
 
 export function initializeGalaxy(particleCount: number, radius: number): Float32Array {
 	const data = new Float32Array(particleCount * STRIDE);
-	const centerMass = 20000;
-	const G = 0.5;
+
+	const G = 1.0;
+	const centralMass = 20000;
+	const diskMass = 50000;
+	const haloVmax = 4.0;
+	const haloCoreRadius = 80;
+	const a = 30;
+	const b = 5;
+	const softening = 10;
+
+	const uniformMass = diskMass / particleCount;
+	const vCirc = (r: number): number => {
+		const v2_cen = (G * centralMass) / (r + softening);
+		const denom = r * r + (a + b) * (a + b);
+		const v2_disk = (G * diskMass * r * r) / (denom * Math.sqrt(denom));
+		const v2_halo = (haloVmax * haloVmax * (r * r)) / (r * r + haloCoreRadius * haloCoreRadius);
+		return Math.sqrt(v2_cen + v2_disk + v2_halo);
+	};
 
 	for (let i = 0; i < particleCount; i++) {
 		const idx = i * STRIDE;
@@ -15,7 +31,7 @@ export function initializeGalaxy(particleCount: number, radius: number): Float32
 			data[idx + 3] = 0;
 			data[idx + 4] = 0;
 			data[idx + 5] = 0;
-			data[idx + 6] = centerMass;
+			data[idx + 6] = centralMass;
 			continue;
 		}
 
@@ -31,7 +47,10 @@ export function initializeGalaxy(particleCount: number, radius: number): Float32
 		data[idx + 1] = y;
 		data[idx + 2] = z;
 
-		const speed = Math.sqrt((G * centerMass) / (r + 10)) * (0.8 + 0.4 * Math.random());
+		const vc = vCirc(r);
+		const scatter = 0.05 * vc;
+		const speed = vc + (Math.random() - 0.5) * scatter;
+
 		const vx = -speed * Math.sin(theta);
 		const vy = speed * Math.cos(theta);
 		const vz = (Math.random() - 0.5) * speed * 0.3;
@@ -39,7 +58,7 @@ export function initializeGalaxy(particleCount: number, radius: number): Float32
 		data[idx + 3] = vx;
 		data[idx + 4] = vy;
 		data[idx + 5] = vz;
-		data[idx + 6] = 0.5 + Math.random() * 2.0;
+		data[idx + 6] = uniformMass;
 	}
 
 	return data;
