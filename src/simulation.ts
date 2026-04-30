@@ -9,7 +9,7 @@ import { updateFPSDisplay, updateEnergyDisplay } from "./ui";
 const GALAXY_RADIUS = 400;
 
 export const config: SimConfig = {
-	gravitationalConstant: 0.5,
+	gravitationalConstant: 2,
 	softeningEpsilon: 10.0,
 	blackHoleMass: 150000,
 	timeStep: 0.016,

@@ -31,7 +31,7 @@ export class UIController {
 
 	private setupPhysicsFolder() {
 		const phys = this.gui.addFolder("AP Physics C: Mechanics");
-		phys.add(this.config, "gravitationalConstant", 0.1, 2.0, 0.01).name("G Constant").listen();
+		phys.add(this.config, "gravitationalConstant", 1.0, 4.0, 0.01).name("G Constant").listen();
 		phys.add(this.config, "softeningEpsilon", 1.0, 50.0, 0.5).name("Softening (e)").listen();
 		phys.add(this.config, "blackHoleMass", 5000, 500000, 1000).name("Singular Mass");
 		phys.add(this.config, "injectBlackHole").name("Inject Black Hole");
