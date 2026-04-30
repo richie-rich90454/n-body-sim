@@ -52,9 +52,12 @@ export class ParticleSystem {
 		this.bulgeMap = new Uint32Array(this.bulgeCount);
 		this.dustMap = new Uint32Array(this.dustCount);
 		this.haloMap = new Uint32Array(this.haloCount);
-		for (let i = 0; i < this.bulgeCount; i++) this.bulgeMap[i] = Math.floor(Math.random() * count);
-		for (let i = 0; i < this.dustCount; i++) this.dustMap[i] = Math.floor(Math.random() * count);
-		for (let i = 0; i < this.haloCount; i++) this.haloMap[i] = Math.floor(Math.random() * count);
+		for (let i = 0; i < this.bulgeCount; i++)
+			this.bulgeMap[i] = Math.floor(Math.random() * count);
+		for (let i = 0; i < this.dustCount; i++)
+			this.dustMap[i] = Math.floor(Math.random() * count);
+		for (let i = 0; i < this.haloCount; i++)
+			this.haloMap[i] = Math.floor(Math.random() * count);
 
 		this.geometry = new BufferGeometry();
 		this.bulgeGeometry = new BufferGeometry();
@@ -78,7 +81,10 @@ export class ParticleSystem {
 		this.geometry.setAttribute("position", new BufferAttribute(this.positionArray, 3));
 		this.geometry.setAttribute("color", new BufferAttribute(this.colorArray, 3));
 		this.geometry.setAttribute("sizeSeed", new BufferAttribute(this.sizeSeedArray, 1));
-		this.bulgeGeometry.setAttribute("position", new BufferAttribute(this.bulgePositionArray, 3));
+		this.bulgeGeometry.setAttribute(
+			"position",
+			new BufferAttribute(this.bulgePositionArray, 3),
+		);
 		this.bulgeGeometry.setAttribute("color", new BufferAttribute(this.bulgeColorArray, 3));
 		this.dustGeometry.setAttribute("position", new BufferAttribute(this.dustPositionArray, 3));
 		this.dustGeometry.setAttribute("color", new BufferAttribute(this.dustColorArray, 3));
@@ -239,13 +245,13 @@ export class ParticleSystem {
 			const theta = Math.random() * Math.PI * 2;
 			const phi = Math.acos(2 * Math.random() - 1);
 			const r = radius * (0.7 + Math.random() * 0.3);
-			positions[i*3] = r * Math.sin(phi) * Math.cos(theta);
-			positions[i*3+1] = r * Math.sin(phi) * Math.sin(theta);
-			positions[i*3+2] = r * Math.cos(phi);
+			positions[i * 3] = r * Math.sin(phi) * Math.cos(theta);
+			positions[i * 3 + 1] = r * Math.sin(phi) * Math.sin(theta);
+			positions[i * 3 + 2] = r * Math.cos(phi);
 			const intensity = 0.1 + Math.random() * 0.3;
-			colors[i*3] = intensity * 0.8;
-			colors[i*3+1] = intensity * 0.9;
-			colors[i*3+2] = intensity;
+			colors[i * 3] = intensity * 0.8;
+			colors[i * 3 + 1] = intensity * 0.9;
+			colors[i * 3 + 2] = intensity;
 		}
 		this.backgroundGeometry.setAttribute("position", new BufferAttribute(positions, 3));
 		this.backgroundGeometry.setAttribute("color", new BufferAttribute(colors, 3));
@@ -434,7 +440,12 @@ export class ParticleSystem {
 		this.haloGeometry.attributes.color.needsUpdate = true;
 	}
 
-	public update(data: Float32Array, pointSize: number, blackHoleIdx: number, deltaTime: number = 0.016) {
+	public update(
+		data: Float32Array,
+		pointSize: number,
+		blackHoleIdx: number,
+		deltaTime: number = 0.016,
+	) {
 		this.time += deltaTime;
 		const mat = this.points.material as ShaderMaterial;
 		mat.uniforms.pointSize.value = pointSize;

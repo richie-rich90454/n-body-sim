@@ -20,7 +20,7 @@ A high-performance, multi-threaded N-body particle simulation built with pure Ty
 - **Web Worker based multi-threading** – workload distributed across all available CPU cores using dedicated workers.
 - **Zero-copy data transfer** – `Float32Array` buffers are transferred via `postMessage` without serialization overhead.
 - **Symplectic Leapfrog integrator** – conserves energy significantly better than naive Euler methods.
-- **Real-time 3D visualization** powered by Three.js with bloom post-processing and a realistic M87*-style black hole sprite.
+- **Real-time 3D visualization** powered by Three.js with bloom post-processing and a realistic M87\*-style black hole sprite.
 - **Fully interactive parameter control** – adjust gravitational constant, softening factor, time step, and more via a `lil-gui` panel.
 - **Dynamic particle count adjustment** – scale the simulation from 1,000 to 20,000 particles without reloading.
 - **Built-in performance metrics** – live FPS, frame time, and total energy drift displayed on screen.
