@@ -43,9 +43,10 @@ export class ParticleSystem {
 	private bulgeMap: Uint32Array;
 	private dustMap: Uint32Array;
 	private haloMap: Uint32Array;
-	private windingSign: number = 0;
+
 	private bulgeColorScale = chroma.scale(["#fff5cc", "#ffcc66", "#ff9933"]).mode("lch");
-	private diskAngleScale = chroma.scale(["#3366ee", "#cc44aa", "#ff6688", "#ffcc66"]).mode("lch");
+	private diskRadialScale = chroma.scale(["#ffcc66", "#6688cc"]).mode("lch");
+	private energyTintScale = chroma.scale(["#6688cc", "#ffcc66"]).mode("lch");
 	private dopplerScale = chroma.scale(["#aaccff", "#ffffff", "#ffaa88"]).mode("lch");
 	private dustColorScale = chroma.scale(["#996644", "#664422", "#332211"]).mode("lab");
 	private haloColorScale = chroma.scale(["#cce0ff", "#88aaff"]).mode("lab");
@@ -431,8 +432,8 @@ export class ParticleSystem {
 			(this.backgroundStars.material as ShaderMaterial).uniforms.time.value = this.time;
 		}
 		this.lastPointSize = pointSize;
+
 		let maxSpeed = 0.1;
-		let totalLz = 0;
 		for (let i = 0; i < this.count; i++) {
 			const base = i * STRIDE;
 			const vx = data[base + 3];
@@ -441,16 +442,9 @@ export class ParticleSystem {
 			const speed = Math.sqrt(vx * vx + vy * vy + vz * vz);
 			this.speeds[i] = speed;
 			if (speed > maxSpeed) maxSpeed = speed;
-			if (this.windingSign === 0) {
-				const x = data[base];
-				const y = data[base + 1];
-				totalLz += x * vy - y * vx;
-			}
-		}
-		if (this.windingSign === 0) {
-			this.windingSign = totalLz > 0 ? 1 : -1;
 		}
 		maxSpeed = Math.max(maxSpeed, 0.001);
+
 		for (let i = 0; i < this.count; i++) {
 			const base = i * STRIDE;
 			const posIdx = i * 3;
@@ -460,26 +454,35 @@ export class ParticleSystem {
 			this.positionArray[posIdx] = x;
 			this.positionArray[posIdx + 1] = y;
 			this.positionArray[posIdx + 2] = z;
+
 			if (i === blackHoleIdx && data[base + 6] > 50000) {
 				this.colorArray[posIdx] = 0;
 				this.colorArray[posIdx + 1] = 0;
 				this.colorArray[posIdx + 2] = 0;
 				continue;
 			}
+
 			const dist = Math.sqrt(x * x + y * y + z * z) / 400;
 			const angle = Math.atan2(y, x);
 			const angle01 = (angle + Math.PI) / (Math.PI * 2);
 			const speedFactor = Math.min(this.speeds[i] / maxSpeed, 1.0);
-			const arms = 4;
-			const spiralPhase = (angle01 * arms + dist * this.windingSign * 1.8) % 1;
-			const armIntensity = 0.4 + 0.6 * Math.sin(spiralPhase * Math.PI * 2);
-			const diskColor = this.diskAngleScale(angle01).rgb();
-			const coreColor = this.bulgeColorScale(dist).rgb();
-			const coreWeight = Math.max(0, 1 - dist * 2.0);
-			const armWeight = (1 - coreWeight) * armIntensity * 0.9;
-			let R = (diskColor[0] / 255) * armWeight + (coreColor[0] / 255) * coreWeight;
-			let G = (diskColor[1] / 255) * armWeight + (coreColor[1] / 255) * coreWeight;
-			let B = (diskColor[2] / 255) * armWeight + (coreColor[2] / 255) * coreWeight;
+
+			const baseColor = this.diskRadialScale(dist).rgb();
+			const energyColor = this.energyTintScale(speedFactor).rgb();
+			let R = (baseColor[0] / 255) * 0.7 + (energyColor[0] / 255) * 0.3;
+			let G = (baseColor[1] / 255) * 0.7 + (energyColor[1] / 255) * 0.3;
+			let B = (baseColor[2] / 255) * 0.7 + (energyColor[2] / 255) * 0.3;
+			const pitch = 0.6;
+			const logSpiral = Math.log(Math.max(dist, 0.01)) * pitch;
+			const armPhase = (angle01 * 2 + logSpiral) % 1;
+			const armIntensity = 0.5 + 0.5 * Math.sin(armPhase * Math.PI * 2);
+			const armInfluence = Math.min(1.0, dist * 2.0) * 0.85;
+			const brightnessBoost = 1.0 + armIntensity * 0.4 * armInfluence + speedFactor * 0.15;
+
+			R *= brightnessBoost;
+			G *= brightnessBoost;
+			B *= brightnessBoost;
+
 			const velocity = new Vector3(
 				data[base + 3],
 				data[base + 4],
@@ -489,19 +492,18 @@ export class ParticleSystem {
 			const doppler = velocity.dot(cameraDirection);
 			const dopplerT = doppler * 0.5 + 0.5;
 			const dopplerColor = this.dopplerScale(dopplerT).rgb();
-			R = R * 0.92 + (dopplerColor[0] / 255) * 0.08;
-			G = G * 0.92 + (dopplerColor[1] / 255) * 0.08;
-			B = B * 0.92 + (dopplerColor[2] / 255) * 0.08;
-			const brightness = 1.0 + speedFactor * 0.15 + armIntensity * 0.25 + coreWeight * 0.1;
-			R *= brightness;
-			G *= brightness;
-			B *= brightness;
+			R = R * 0.95 + (dopplerColor[0] / 255) * 0.05;
+			G = G * 0.95 + (dopplerColor[1] / 255) * 0.05;
+			B = B * 0.95 + (dopplerColor[2] / 255) * 0.05;
+
 			this.colorArray[posIdx] = Math.min(R, 1.8);
 			this.colorArray[posIdx + 1] = Math.min(G, 1.8);
 			this.colorArray[posIdx + 2] = Math.min(B, 1.8);
 		}
+
 		this.geometry.attributes.position.needsUpdate = true;
 		this.geometry.attributes.color.needsUpdate = true;
+
 		for (let i = 0; i < this.bulgeCount; i++) {
 			const srcIdx = this.bulgeMap[i] * 3;
 			const dstIdx = i * 3;
@@ -526,6 +528,7 @@ export class ParticleSystem {
 			this.haloPositionArray[dstIdx + 2] = this.positionArray[srcIdx + 2];
 		}
 		this.haloGeometry.attributes.position.needsUpdate = true;
+
 		this.updateBlackHoleSprite(data, pointSize, blackHoleIdx);
 	}
 

@@ -24,8 +24,8 @@ export function initializeGalaxy(particleCount: number, radius: number): Float32
 		const phi = Math.acos(2 * Math.random() - 1);
 
 		const x = r * Math.sin(phi) * Math.cos(theta);
-		const y = r * Math.sin(phi) * Math.sin(theta) * 0.4;
-		const z = r * Math.cos(phi);
+		const y = r * Math.sin(phi) * Math.sin(theta);
+		const z = r * Math.cos(phi) * 0.4;
 
 		data[idx] = x;
 		data[idx + 1] = y;
@@ -33,7 +33,7 @@ export function initializeGalaxy(particleCount: number, radius: number): Float32
 
 		const speed = Math.sqrt((G * centerMass) / (r + 10)) * (0.8 + 0.4 * Math.random());
 		const vx = -speed * Math.sin(theta);
-		const vy = speed * Math.cos(theta) * 0.6;
+		const vy = speed * Math.cos(theta);
 		const vz = (Math.random() - 0.5) * speed * 0.3;
 
 		data[idx + 3] = vx;
