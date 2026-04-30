@@ -19,12 +19,14 @@
 	"license": "MIT",
 	"type": "module",
 	"dependencies": {
+		"chroma-js": "^3.2.0",
 		"katex": "^0.16.45",
 		"lil-gui": "^0.21.0",
 		"postprocessing": "^6.39.1",
 		"three": "^0.184.0"
 	},
 	"devDependencies": {
+		"@types/chroma-js": "^3.1.2",
 		"@types/katex": "^0.16.8",
 		"@types/three": "^0.184.0",
 		"prettier": "^3.8.3",

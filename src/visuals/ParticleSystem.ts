@@ -1,3 +1,4 @@
+import chroma from "chroma-js";
 import {
 	Points,
 	BufferGeometry,
@@ -42,6 +43,22 @@ export class ParticleSystem {
 	private bulgeMap: Uint32Array;
 	private dustMap: Uint32Array;
 	private haloMap: Uint32Array;
+
+	private diskColorScale = chroma
+		.scale(["#fff5cc", "#ffc966", "#bb77aa", "#556699", "#aaccff"])
+		.mode("lab");
+
+	private bulgeColorScale = chroma.scale(["#fffde6", "#ffcc66", "#ff9933"]).mode("lch");
+
+	private dustColorScale = chroma.scale(["#cc9966", "#996633", "#554433"]).mode("lab");
+
+	private haloColorScale = chroma.scale(["#d4e6ff", "#a0c4ff"]).mode("lab");
+
+	private bgStarScale = chroma.scale(["#ffffff", "#ccddff", "#ffccaa"]).mode("lab");
+
+	private accretionScale = chroma
+		.scale(["white", "yellow", "orange", "red", "darkred", "black"])
+		.mode("lch");
 
 	constructor(count: number) {
 		this.count = count;
@@ -248,10 +265,10 @@ export class ParticleSystem {
 			positions[i * 3] = r * Math.sin(phi) * Math.cos(theta);
 			positions[i * 3 + 1] = r * Math.sin(phi) * Math.sin(theta);
 			positions[i * 3 + 2] = r * Math.cos(phi);
-			const intensity = 0.1 + Math.random() * 0.3;
-			colors[i * 3] = intensity * 0.8;
-			colors[i * 3 + 1] = intensity * 0.9;
-			colors[i * 3 + 2] = intensity;
+			const [R, G, B] = this.bgStarScale(Math.random()).gl();
+			colors[i * 3] = R;
+			colors[i * 3 + 1] = G;
+			colors[i * 3 + 2] = B;
 		}
 		this.backgroundGeometry.setAttribute("position", new BufferAttribute(positions, 3));
 		this.backgroundGeometry.setAttribute("color", new BufferAttribute(colors, 3));
@@ -295,61 +312,50 @@ export class ParticleSystem {
 
 		const centerX = size / 2;
 		const centerY = size / 2;
-
 		ctx.fillStyle = "#000000";
 		ctx.fillRect(0, 0, size, size);
 
-		const ringImageData = ctx.createImageData(size, size);
-		const data = ringImageData.data;
-
+		const imageData = ctx.createImageData(size, size);
+		const data = imageData.data;
+		const voidRadius = 40;
 		const innerRadius = 50;
 		const outerRadius = 120;
-		const voidRadius = 40;
 
 		for (let py = 0; py < size; py++) {
 			for (let px = 0; px < size; px++) {
 				const dx = px - centerX;
 				const dy = py - centerY;
 				const r = Math.sqrt(dx * dx + dy * dy);
-
 				if (r < voidRadius || r > outerRadius + 15) continue;
 
+				const t = Math.max(0, Math.min(1, (r - innerRadius) / (outerRadius - innerRadius)));
 				let intensity = 0;
 				if (r >= innerRadius && r <= outerRadius) {
-					const t = (r - innerRadius) / (outerRadius - innerRadius);
 					intensity = Math.sin(t * Math.PI) * 1.0;
 				} else if (r > voidRadius && r < innerRadius) {
 					intensity = Math.pow((r - voidRadius) / (innerRadius - voidRadius), 1.5) * 0.5;
 				} else if (r > outerRadius) {
 					intensity = (1 - (r - outerRadius) / 18) * 0.4;
 				}
-
 				if (intensity <= 0.01) continue;
 
 				const verticalBias = 0.6 + 0.5 * (dy / r);
 				const asymmetry = Math.max(0.3, Math.min(1.3, verticalBias));
 				intensity *= asymmetry;
-
 				const horizontalBias = 0.9 + 0.2 * (dx / r);
 				intensity *= horizontalBias;
 
-				const warmness = Math.max(0, Math.min(1, (dy / r) * 0.7 + 0.5));
-
-				let R = Math.floor(255 * (1.0 * warmness + 0.8 * (1 - warmness)) * intensity);
-				let G = Math.floor(200 * warmness * intensity + 60 * (1 - warmness) * intensity);
-				let B = Math.floor(80 * warmness * intensity + 20 * (1 - warmness) * intensity);
-
-				if (intensity > 0.05) {
-					const idx = (py * size + px) * 4;
-					data[idx] = Math.min(255, R);
-					data[idx + 1] = Math.min(255, G);
-					data[idx + 2] = Math.min(255, B);
-					data[idx + 3] = Math.floor(intensity * 200);
-				}
+				const colourFactor = Math.max(0, Math.min(1, (dy / r) * 0.7 + 0.5));
+				const [R, G, B] = this.accretionScale(colourFactor).rgb();
+				const alpha = Math.floor(intensity * 220);
+				const idx = (py * size + px) * 4;
+				data[idx] = R;
+				data[idx + 1] = G;
+				data[idx + 2] = B;
+				data[idx + 3] = alpha;
 			}
 		}
-
-		ctx.putImageData(ringImageData, 0, 0);
+		ctx.putImageData(imageData, 0, 0);
 
 		const outerGlow = ctx.createRadialGradient(
 			centerX,
@@ -359,8 +365,8 @@ export class ParticleSystem {
 			centerY,
 			outerRadius + 35,
 		);
-		outerGlow.addColorStop(0, "rgba(255, 140, 40, 0.25)");
-		outerGlow.addColorStop(1, "rgba(80, 30, 10, 0)");
+		outerGlow.addColorStop(0, "rgba(255,140,40,0.25)");
+		outerGlow.addColorStop(1, "rgba(80,30,10,0)");
 		ctx.fillStyle = outerGlow;
 		ctx.beginPath();
 		ctx.arc(centerX, centerY, outerRadius + 35, 0, Math.PI * 2);
@@ -372,7 +378,6 @@ export class ParticleSystem {
 			blending: AdditiveBlending,
 			depthWrite: false,
 		});
-
 		this.blackHoleSprite = new Sprite(material);
 		this.blackHoleSprite.scale.set(180, 180, 1);
 		this.blackHoleSprite.visible = false;
@@ -390,46 +395,38 @@ export class ParticleSystem {
 			const r = Math.pow(Math.random(), 1.6) * 65;
 			const theta = Math.random() * Math.PI * 2;
 			const phi = Math.acos(2 * Math.random() - 1);
-			const x = r * Math.sin(phi) * Math.cos(theta);
-			const y = r * Math.sin(phi) * Math.sin(theta) * 0.7;
-			const z = r * Math.cos(phi) * 0.7;
-			bulgePos[i * 3] = x;
-			bulgePos[i * 3 + 1] = y;
-			bulgePos[i * 3 + 2] = z;
-			const mix = r / 65;
-			bulgeCol[i * 3] = 1.0;
-			bulgeCol[i * 3 + 1] = 0.75 + mix * 0.25;
-			bulgeCol[i * 3 + 2] = 0.45 + mix * 0.35;
+			bulgePos[i * 3] = r * Math.sin(phi) * Math.cos(theta);
+			bulgePos[i * 3 + 1] = r * Math.sin(phi) * Math.sin(theta) * 0.7;
+			bulgePos[i * 3 + 2] = r * Math.cos(phi) * 0.7;
+			const [R, G, B] = this.bulgeColorScale(r / 65).gl();
+			bulgeCol[i * 3] = R;
+			bulgeCol[i * 3 + 1] = G;
+			bulgeCol[i * 3 + 2] = B;
 		}
 
 		for (let i = 0; i < this.dustCount; i++) {
 			const r = 40 + Math.pow(Math.random(), 2.0) * 240;
 			const theta = Math.random() * Math.PI * 2;
-			const x = r * Math.cos(theta);
-			const y = (Math.random() - 0.5) * 28;
-			const z = r * Math.sin(theta) * 0.35;
-			dustPos[i * 3] = x;
-			dustPos[i * 3 + 1] = y;
-			dustPos[i * 3 + 2] = z;
-			const bright = 0.35 + 0.3 * Math.random();
-			dustCol[i * 3] = bright * 0.9;
-			dustCol[i * 3 + 1] = bright * 0.7;
-			dustCol[i * 3 + 2] = bright * 0.5;
+			dustPos[i * 3] = r * Math.cos(theta);
+			dustPos[i * 3 + 1] = (Math.random() - 0.5) * 28;
+			dustPos[i * 3 + 2] = r * Math.sin(theta) * 0.35;
+			const [R, G, B] = this.dustColorScale(0.3 + 0.7 * Math.random()).gl();
+			dustCol[i * 3] = R;
+			dustCol[i * 3 + 1] = G;
+			dustCol[i * 3 + 2] = B;
 		}
 
 		for (let i = 0; i < this.haloCount; i++) {
 			const r = 180 + Math.pow(Math.random(), 2.8) * 480;
 			const theta = Math.random() * Math.PI * 2;
 			const phi = Math.acos(2 * Math.random() - 1);
-			const x = r * Math.sin(phi) * Math.cos(theta);
-			const y = r * Math.sin(phi) * Math.sin(theta) * 0.25;
-			const z = r * Math.cos(phi) * 0.25;
-			haloPos[i * 3] = x;
-			haloPos[i * 3 + 1] = y;
-			haloPos[i * 3 + 2] = z;
-			haloCol[i * 3] = 0.5 + 0.4 * Math.random();
-			haloCol[i * 3 + 1] = 0.6 + 0.4 * Math.random();
-			haloCol[i * 3 + 2] = 1.0 + 0.2 * Math.random();
+			haloPos[i * 3] = r * Math.sin(phi) * Math.cos(theta);
+			haloPos[i * 3 + 1] = r * Math.sin(phi) * Math.sin(theta) * 0.25;
+			haloPos[i * 3 + 2] = r * Math.cos(phi) * 0.25;
+			const [R, G, B] = this.haloColorScale(Math.random()).gl();
+			haloCol[i * 3] = R;
+			haloCol[i * 3 + 1] = G;
+			haloCol[i * 3 + 2] = B;
 		}
 
 		this.bulgeGeometry.attributes.position.needsUpdate = true;
@@ -484,32 +481,19 @@ export class ParticleSystem {
 			this.positionArray[posIdx + 2] = z;
 
 			if (i === blackHoleIdx && data[base + 6] > 50000) {
-				this.colorArray[posIdx] = 0.0;
-				this.colorArray[posIdx + 1] = 0.0;
-				this.colorArray[posIdx + 2] = 0.0;
+				this.colorArray[posIdx] = 0;
+				this.colorArray[posIdx + 1] = 0;
+				this.colorArray[posIdx + 2] = 0;
 				continue;
 			}
 
-			const t = Math.min(this.speeds[i] / maxSpeed, 1.0);
 			const dist = Math.sqrt(x * x + y * y + z * z) / 400;
-
-			let r = 0.45 + 0.4 * dist + t * 0.2;
-			let g = 0.55 + 0.45 * dist + t * 0.2;
-			let b = 0.9 + 0.25 * (1 - dist) + t * 0.15;
-
-			r = Math.min(r, 1.0);
-			g = Math.min(g, 1.0);
-			b = Math.min(b, 1.0);
-
-			if (dist < 0.18) {
-				r = 0.95;
-				g = 0.75;
-				b = 0.45;
-			}
-
-			this.colorArray[posIdx] = r;
-			this.colorArray[posIdx + 1] = g;
-			this.colorArray[posIdx + 2] = b;
+			const speedFactor = Math.min(this.speeds[i] / maxSpeed, 1.0);
+			const t = Math.min(1, dist * 1.2 + speedFactor * 0.25);
+			const [R, G, B] = this.diskColorScale(t).gl();
+			this.colorArray[posIdx] = R;
+			this.colorArray[posIdx + 1] = G;
+			this.colorArray[posIdx + 2] = B;
 		}
 
 		this.geometry.attributes.position.needsUpdate = true;
@@ -552,8 +536,7 @@ export class ParticleSystem {
 			return;
 		}
 		const base = blackHoleIdx * STRIDE;
-		const mass = data[base + 6];
-		if (mass > 50000) {
+		if (data[base + 6] > 50000) {
 			this.blackHoleSprite.position.set(data[base], data[base + 1], data[base + 2]);
 			this.blackHoleSprite.visible = true;
 			const scale = pointSize * 12.0;
