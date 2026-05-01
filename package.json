@@ -29,6 +29,7 @@
         "@types/chroma-js": "^3.1.2",
         "@types/katex": "^0.16.8",
         "@types/three": "^0.184.0",
+        "@webgpu/types": "^0.1.69",
         "prettier": "^3.8.3",
         "typescript": "^6.0.3",
         "vite": "^8.0.8"

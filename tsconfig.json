@@ -3,6 +3,7 @@
         "target": "ES6",
         "useDefineForClassFields": true,
         "module": "ESNext",
+        "types": ["@webgpu/types"],
         "lib": ["ES2020", "DOM", "WebWorker"],
         "moduleResolution": "Node",
         "strict": true,
