@@ -46,12 +46,11 @@ export function initializeGalaxy(particleCount: number, radius: number): Float32
         data[idx + 2] = z;
 
         const vc = vCirc(r);
-        const scatter = 0.05 * vc;
-        const speed = vc + (Math.random() - 0.5) * scatter;
+        const speed = vc;
 
         const vx = -speed * Math.sin(theta);
         const vy = speed * Math.cos(theta);
-        const vz = (Math.random() - 0.5) * speed * 0.3;
+        const vz = 0;
 
         data[idx + 3] = vx;
         data[idx + 4] = vy;

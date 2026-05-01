@@ -451,7 +451,7 @@ export class ParticleSystem {
             this.positionArray[posIdx + 1] = y;
             this.positionArray[posIdx + 2] = z;
 
-            if (i === blackHoleIdx && data[base + 6] > 50000) {
+            if (i === 0 || (i === blackHoleIdx && data[base + 6] > 50000)) {
                 this.colorArray[posIdx] = 0;
                 this.colorArray[posIdx + 1] = 0;
                 this.colorArray[posIdx + 2] = 0;

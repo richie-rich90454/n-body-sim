@@ -22,6 +22,7 @@ export class SimulationManager {
     private stepInProgress = false;
     private accelArray: Float32Array;
     private count: number;
+    public blackHoleIdx: number = -1;
 
     constructor(initialData: Float32Array, workerCount: number) {
         this.count = initialData.length / STRIDE;
@@ -38,6 +39,10 @@ export class SimulationManager {
             worker.postMessage({ type: "init", buffer: sab });
             this.workers.push(worker);
         }
+    }
+
+    public setBlackHoleIndex(idx: number) {
+        this.blackHoleIdx = idx;
     }
 
     private handleWorkerMessage(e: MessageEvent) {
@@ -59,7 +64,8 @@ export class SimulationManager {
     private onPhaseComplete() {
         if (this.stepPhase === 0) {
             const subDt = this.subDt;
-            for (let i = 0; i < this.count; i++) {
+            const start = this.blackHoleIdx >= 0 ? 0 : 1;
+            for (let i = start; i < this.count; i++) {
                 const i7 = i * STRIDE;
                 const ax = this.accelArray[i * 3];
                 const ay = this.accelArray[i * 3 + 1];
@@ -75,7 +81,8 @@ export class SimulationManager {
             this.dispatchAccelWorkers();
         } else {
             const subDt = this.subDt;
-            for (let i = 0; i < this.count; i++) {
+            const start = this.blackHoleIdx >= 0 ? 0 : 1;
+            for (let i = start; i < this.count; i++) {
                 const i7 = i * STRIDE;
                 const ax = this.accelArray[i * 3];
                 const ay = this.accelArray[i * 3 + 1];
@@ -116,6 +123,7 @@ export class SimulationManager {
                 count: this.count,
                 G: config.G,
                 softeningSq: config.SOFTENING * config.SOFTENING,
+                blackHoleIdx: this.blackHoleIdx,
             });
         }
     }

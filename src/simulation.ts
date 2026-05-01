@@ -196,6 +196,7 @@ export function injectBlackHole() {
         }
     }
     blackHoleIndex = newIndex;
+    simManager.setBlackHoleIndex(blackHoleIndex);
     simManager.setParticleMass(blackHoleIndex, config.blackHoleMass);
     const idx = blackHoleIndex * STRIDE;
     simManager.particleData[idx + 3] = 0;
@@ -208,6 +209,7 @@ export function injectBlackHole() {
 export function resetGalaxy() {
     createSimulation(config.particleCount);
     blackHoleIndex = 0;
+    simManager.setBlackHoleIndex(0);
 }
 
 export function getSimManager() {

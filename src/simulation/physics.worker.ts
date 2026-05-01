@@ -8,7 +8,7 @@ self.onmessage = (e: MessageEvent) => {
         return;
     }
     if (msg.type === "accel") {
-        const { startIdx, endIdx, count, G, softeningSq } = msg;
+        const { startIdx, endIdx, count, G, softeningSq, blackHoleIdx } = msg;
         const length = endIdx - startIdx;
         const accel = new Float32Array(length * 3);
         if (length <= 0) {
@@ -21,12 +21,19 @@ self.onmessage = (e: MessageEvent) => {
             const px = allData[i7];
             const py = allData[i7 + 1];
             const pz = allData[i7 + 2];
+
+            if (i === 0 && (blackHoleIdx === undefined || blackHoleIdx < 0)) {
+                accel[accelIdx++] = 0;
+                accel[accelIdx++] = 0;
+                accel[accelIdx++] = 0;
+                continue;
+            }
+
             let ax = 0,
                 ay = 0,
                 az = 0;
-            for (let j = 0; j < count; j++) {
-                if (i === j) continue;
-                const j7 = j * STRIDE;
+            if (i === 0 && blackHoleIdx !== undefined && blackHoleIdx >= 0) {
+                const j7 = blackHoleIdx * STRIDE;
                 const dx = allData[j7] - px;
                 const dy = allData[j7 + 1] - py;
                 const dz = allData[j7 + 2] - pz;
@@ -34,9 +41,24 @@ self.onmessage = (e: MessageEvent) => {
                 const distSq = dx * dx + dy * dy + dz * dz + softeningSq;
                 const invDist = 1 / Math.sqrt(distSq);
                 const factor = G * mj * invDist * invDist * invDist;
-                ax += dx * factor;
-                ay += dy * factor;
-                az += dz * factor;
+                ax = dx * factor;
+                ay = dy * factor;
+                az = dz * factor;
+            } else {
+                for (let j = 0; j < count; j++) {
+                    if (i === j) continue;
+                    const j7 = j * STRIDE;
+                    const dx = allData[j7] - px;
+                    const dy = allData[j7 + 1] - py;
+                    const dz = allData[j7 + 2] - pz;
+                    const mj = allData[j7 + 6];
+                    const distSq = dx * dx + dy * dy + dz * dz + softeningSq;
+                    const invDist = 1 / Math.sqrt(distSq);
+                    const factor = G * mj * invDist * invDist * invDist;
+                    ax += dx * factor;
+                    ay += dy * factor;
+                    az += dz * factor;
+                }
             }
             accel[accelIdx++] = ax;
             accel[accelIdx++] = ay;
