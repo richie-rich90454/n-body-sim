@@ -13,11 +13,11 @@ import { UIController } from "./visuals/UIController";
 config.injectBlackHole = injectBlackHole;
 config.resetGalaxy = resetGalaxy;
 
-createSimulation(config.particleCount);
-
-new UIController(config);
-
-injectExplanations();
-setupModalAndTabs();
-setupResizeHandler();
-animationLoop();
+(async () => {
+    await createSimulation(config.particleCount);
+    new UIController(config);
+    injectExplanations();
+    setupModalAndTabs();
+    setupResizeHandler();
+    animationLoop();
+})();

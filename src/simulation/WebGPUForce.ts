@@ -178,6 +178,7 @@ export async function computeAccelerationsWebGPU(
 
     await stagingBuffer.mapAsync(GPUMapMode.READ);
     const mapped = stagingBuffer.getMappedRange();
-    outAccel.set(new Float32Array(mapped));
+    const view = new Float32Array(mapped);
+    outAccel.set(view);
     stagingBuffer.unmap();
 }
