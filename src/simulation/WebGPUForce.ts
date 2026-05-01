@@ -6,10 +6,13 @@ export interface WebGPUForce {
     device: GPUDevice;
     pipeline: GPUComputePipeline;
     bindGroupLayout: GPUBindGroupLayout;
+    bindGroup: GPUBindGroup;
     particleBuffer: GPUBuffer;
     accelBuffer: GPUBuffer;
-    stagingBuffer: GPUBuffer;
     uniformBuffer: GPUBuffer;
+    stagingBuffers: [GPUBuffer, GPUBuffer];
+    stagingReady: [boolean, boolean];
+    stagingIndex: number;
     count: number;
 }
 
@@ -37,14 +40,17 @@ export async function createWebGPUForce(
         usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC,
     });
 
-    const stagingBuffer = device.createBuffer({
-        size: accelBufferSize,
-        usage: GPUBufferUsage.MAP_READ | GPUBufferUsage.COPY_DST,
-    });
-
     const uniformBuffer = device.createBuffer({
         size: 8,
         usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
+    });
+    const staging0 = device.createBuffer({
+        size: accelBufferSize,
+        usage: GPUBufferUsage.MAP_READ | GPUBufferUsage.COPY_DST,
+    });
+    const staging1 = device.createBuffer({
+        size: accelBufferSize,
+        usage: GPUBufferUsage.MAP_READ | GPUBufferUsage.COPY_DST,
     });
 
     const bindGroupLayout = device.createBindGroupLayout({
@@ -117,14 +123,26 @@ export async function createWebGPUForce(
         compute: { module: shaderModule, entryPoint: "main" },
     });
 
+    const bindGroup = device.createBindGroup({
+        layout: bindGroupLayout,
+        entries: [
+            { binding: 0, resource: { buffer: particleBuffer } },
+            { binding: 1, resource: { buffer: accelBuffer } },
+            { binding: 2, resource: { buffer: uniformBuffer } },
+        ],
+    });
+
     return {
         device,
         pipeline,
         bindGroupLayout,
+        bindGroup,
         particleBuffer,
         accelBuffer,
-        stagingBuffer,
         uniformBuffer,
+        stagingBuffers: [staging0, staging1],
+        stagingReady: [true, true],
+        stagingIndex: 0,
         count,
     };
 }
@@ -138,25 +156,24 @@ export async function computeAccelerationsWebGPU(
     const {
         device,
         pipeline,
-        bindGroupLayout,
         particleBuffer,
         accelBuffer,
-        stagingBuffer,
-        count,
         uniformBuffer,
+        stagingBuffers,
+        stagingReady,
+        bindGroup,
+        count,
     } = force;
 
     device.queue.writeBuffer(particleBuffer, 0, particleData);
     device.queue.writeBuffer(uniformBuffer, 0, new Float32Array([G, softeningSq]));
 
-    const bindGroup = device.createBindGroup({
-        layout: bindGroupLayout,
-        entries: [
-            { binding: 0, resource: { buffer: particleBuffer } },
-            { binding: 1, resource: { buffer: accelBuffer } },
-            { binding: 2, resource: { buffer: uniformBuffer } },
-        ],
-    });
+    while (!stagingReady[0] && !stagingReady[1]) {
+        await new Promise((resolve) => setTimeout(resolve, 0));
+    }
+    const idx = stagingReady[0] ? 0 : 1;
+    stagingReady[idx] = false;
+    const staging = stagingBuffers[idx];
 
     const commandEncoder = device.createCommandEncoder();
     const passEncoder = commandEncoder.beginComputePass();
@@ -168,17 +185,18 @@ export async function computeAccelerationsWebGPU(
     commandEncoder.copyBufferToBuffer(
         accelBuffer,
         0,
-        stagingBuffer,
+        staging,
         0,
         count * 3 * Float32Array.BYTES_PER_ELEMENT,
     );
 
     device.queue.submit([commandEncoder.finish()]);
 
-    await stagingBuffer.mapAsync(GPUMapMode.READ);
-    const mapped = stagingBuffer.getMappedRange();
+    await staging.mapAsync(GPUMapMode.READ);
+    const mapped = staging.getMappedRange();
     const result = new Float32Array(mapped.slice(0));
-    stagingBuffer.unmap();
+    staging.unmap();
+    stagingReady[idx] = true;
 
     return result;
 }

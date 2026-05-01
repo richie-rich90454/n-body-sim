@@ -144,9 +144,12 @@ let lastTime = performance.now();
 let frameCount = 0;
 let fpsTimer = performance.now();
 let rotCurveCounter = 0;
+let gpuBusy = false;
 
 export function animationLoop() {
     requestAnimationFrame(animationLoop);
+    if (!particleData || !particleSystem) return;
+
     const now = performance.now();
     const deltaTime = Math.min(now - lastTime, 100);
     lastTime = now;
@@ -184,7 +187,7 @@ export function animationLoop() {
 
     renderer.controls.autoRotate = config.autoRotate && !config.isPaused;
 
-    if (!config.isPaused) {
+    if (!config.isPaused && !gpuBusy) {
         const effectiveDt = config.timeStep * config.timeScale;
         const subSteps = config.integrationSteps;
         const subDt = effectiveDt / subSteps;
@@ -193,19 +196,19 @@ export function animationLoop() {
         const softSq = config.softeningEpsilon * config.softeningEpsilon;
 
         if (useGPU && webgpuForce) {
+            gpuBusy = true;
             (async () => {
                 for (let step = 0; step < subSteps; step++) {
                     const accel0 = await computeAccelerationsWebGPU(
-                        webgpuForce,
+                        webgpuForce!,
                         particleData,
                         G,
                         softSq,
                     );
                     accelArray.set(accel0);
                     applyFirstHalfKickAndDrift(particleData, accelArray, count, subDt);
-
                     const accel1 = await computeAccelerationsWebGPU(
-                        webgpuForce,
+                        webgpuForce!,
                         particleData,
                         G,
                         softSq,
@@ -214,6 +217,7 @@ export function animationLoop() {
                     applySecondHalfKick(particleData, accelArray, count, subDt);
                 }
                 particleSystem.update(particleData, config.particleSize, blackHoleIndex);
+                gpuBusy = false;
             })();
         } else if (simManager) {
             simManager.step({
@@ -224,7 +228,7 @@ export function animationLoop() {
             });
         }
     } else {
-        if (particleData) {
+        if (!config.isPaused) {
             particleSystem.update(particleData, config.particleSize, blackHoleIndex);
         }
     }
@@ -261,18 +265,21 @@ export function injectBlackHole() {
         }
     }
     blackHoleIndex = newIndex;
-    if (simManager) simManager.setBlackHoleIndex(blackHoleIndex);
     particleData[newIndex * STRIDE + 6] = config.blackHoleMass;
     particleData[newIndex * STRIDE + 3] = 0;
     particleData[newIndex * STRIDE + 4] = 0;
     particleData[newIndex * STRIDE + 5] = 0;
-    if (simManager) simManager.reset(particleData);
+    if (simManager) {
+        simManager.setBlackHoleIndex(blackHoleIndex);
+        simManager.reset(particleData);
+    }
     resetEnergyBaseline();
 }
 
 export function resetGalaxy() {
-    createSimulation(config.particleCount);
-    blackHoleIndex = 0;
+    createSimulation(config.particleCount).then(() => {
+        blackHoleIndex = 0;
+    });
 }
 
 export function getSimManager() {
