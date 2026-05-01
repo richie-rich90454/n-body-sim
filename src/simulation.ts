@@ -144,9 +144,35 @@ let lastTime = performance.now();
 let frameCount = 0;
 let fpsTimer = performance.now();
 let rotCurveCounter = 0;
-let gpuBusy = false;
 
-export function animationLoop() {
+async function stepPhysics() {
+    const effectiveDt = config.timeStep * config.timeScale;
+    const subSteps = config.integrationSteps;
+    const subDt = effectiveDt / subSteps;
+    const count = particleData.length / STRIDE;
+    const G = config.gravitationalConstant;
+    const softSq = config.softeningEpsilon * config.softeningEpsilon;
+
+    if (useGPU && webgpuForce) {
+        for (let s = 0; s < subSteps; s++) {
+            await computeAccelerationsWebGPU(webgpuForce, particleData, G, softSq, accelArray);
+            applyFirstHalfKickAndDrift(particleData, accelArray, count, subDt);
+
+            await computeAccelerationsWebGPU(webgpuForce, particleData, G, softSq, accelArray);
+            applySecondHalfKick(particleData, accelArray, count, subDt);
+        }
+        particleSystem.update(particleData, config.particleSize, blackHoleIndex);
+    } else if (simManager) {
+        simManager.step({
+            G,
+            DT: effectiveDt,
+            SOFTENING: config.softeningEpsilon,
+            STEPS: subSteps,
+        });
+    }
+}
+
+export async function animationLoop() {
     requestAnimationFrame(animationLoop);
     if (!particleData || !particleSystem) return;
 
@@ -187,50 +213,10 @@ export function animationLoop() {
 
     renderer.controls.autoRotate = config.autoRotate && !config.isPaused;
 
-    if (!config.isPaused && !gpuBusy) {
-        const effectiveDt = config.timeStep * config.timeScale;
-        const subSteps = config.integrationSteps;
-        const subDt = effectiveDt / subSteps;
-        const count = particleData.length / STRIDE;
-        const G = config.gravitationalConstant;
-        const softSq = config.softeningEpsilon * config.softeningEpsilon;
-
-        if (useGPU && webgpuForce) {
-            gpuBusy = true;
-            (async () => {
-                for (let step = 0; step < subSteps; step++) {
-                    const accel0 = await computeAccelerationsWebGPU(
-                        webgpuForce!,
-                        particleData,
-                        G,
-                        softSq,
-                    );
-                    accelArray.set(accel0);
-                    applyFirstHalfKickAndDrift(particleData, accelArray, count, subDt);
-                    const accel1 = await computeAccelerationsWebGPU(
-                        webgpuForce!,
-                        particleData,
-                        G,
-                        softSq,
-                    );
-                    accelArray.set(accel1);
-                    applySecondHalfKick(particleData, accelArray, count, subDt);
-                }
-                particleSystem.update(particleData, config.particleSize, blackHoleIndex);
-                gpuBusy = false;
-            })();
-        } else if (simManager) {
-            simManager.step({
-                G,
-                DT: effectiveDt,
-                SOFTENING: config.softeningEpsilon,
-                STEPS: subSteps,
-            });
-        }
+    if (!config.isPaused) {
+        await stepPhysics();
     } else {
-        if (!config.isPaused) {
-            particleSystem.update(particleData, config.particleSize, blackHoleIndex);
-        }
+        particleSystem.update(particleData, config.particleSize, blackHoleIndex);
     }
 
     renderer.controls.update();
