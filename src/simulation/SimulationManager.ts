@@ -74,7 +74,6 @@ export class SimulationManager {
             this.stepPhase = 1;
             this.dispatchAccelWorkers();
         } else {
-            // SECOND half‑kick using accelerations from new positions
             const subDt = this.subDt;
             for (let i = 0; i < this.count; i++) {
                 const i7 = i * STRIDE;
@@ -85,7 +84,6 @@ export class SimulationManager {
                 this.particleData[i7 + 4] += ay * subDt * 0.5;
                 this.particleData[i7 + 5] += az * subDt * 0.5;
             }
-            // advance to next sub‑step (or finish)
             this.stepIndex++;
             if (this.stepIndex < this.stepConfig!.STEPS) {
                 this.startSubStep();
@@ -137,7 +135,6 @@ export class SimulationManager {
 
     private finishReset() {
         if (this.newDataAfterReset) {
-            // re‑create the shared buffer and re‑init all workers
             const sab = new SharedArrayBuffer(
                 this.newDataAfterReset.length * Float32Array.BYTES_PER_ELEMENT,
             );
