@@ -1,11 +1,11 @@
 import "./style.css";
 import {
-	config,
-	createSimulation,
-	animationLoop,
-	setupResizeHandler,
-	injectBlackHole,
-	resetGalaxy,
+    config,
+    createSimulation,
+    animationLoop,
+    setupResizeHandler,
+    injectBlackHole,
+    resetGalaxy,
 } from "./simulation";
 import { injectExplanations, setupModalAndTabs } from "./ui";
 import { UIController } from "./visuals/UIController";

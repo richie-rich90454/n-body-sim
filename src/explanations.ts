@@ -2,37 +2,37 @@ import katex from "katex";
 import "katex/dist/katex.min.css";
 
 export function renderFormula(tex: string, displayMode: boolean = true): string {
-	try {
-		return katex.renderToString(tex, { displayMode, throwOnError: false });
-	} catch (e) {
-		return `<span style="color:red">${tex}</span>`;
-	}
+    try {
+        return katex.renderToString(tex, { displayMode, throwOnError: false });
+    } catch (e) {
+        return `<span style="color:red">${tex}</span>`;
+    }
 }
 
 export function renderInline(tex: string): string {
-	return renderFormula(tex, false);
+    return renderFormula(tex, false);
 }
 
 export const eq = {
-	F_ij: String.raw`F_{ij} = G \cdot \frac{m_i \cdot m_j}{r_{ij}^2}`,
-	F_net: String.raw`\vec{F}_{\text{net}, i} = \sum_{j \neq i} \vec{F}_{ij}`,
-	leapfrog1: String.raw`\begin{aligned} \vec{v}(t + \frac{\Delta t}{2}) &= \vec{v}(t) + \vec{a}(t) \cdot \frac{\Delta t}{2} \\ \vec{x}(t + \Delta t) &= \vec{x}(t) + \vec{v}(t + \frac{\Delta t}{2}) \cdot \Delta t \end{aligned}`,
-	leapfrog2: String.raw`\vec{v}(t + \Delta t) = \vec{v}(t + \frac{\Delta t}{2}) + \vec{a}(t + \Delta t) \cdot \frac{\Delta t}{2}`,
-	force_soft: String.raw`F_{ij} = G \cdot \frac{m_i \cdot m_j}{(r_{ij}^2 + \varepsilon^2)^{3/2}} \cdot \vec{r}_{ij}`,
-	energy: String.raw`E_{\text{total}} = \sum_i \frac{1}{2} m_i v_i^2 - \sum_{i < j} G \frac{m_i m_j}{\sqrt{r_{ij}^2 + \varepsilon^2}}`,
-	F_simple: String.raw`F = G \frac{m_1 m_2}{r^2}`,
-	v_half: String.raw`v_{\text{half}} = v + a \cdot \frac{\Delta t}{2}`,
-	x_new: String.raw`x_{\text{new}} = x + v_{\text{half}} \cdot \Delta t`,
-	F_basic: String.raw`F = G \frac{m_1 m_2}{r^2}`,
-	accel: String.raw`a = \frac{F}{m}`,
-	velocity_update: String.raw`v_{\text{new}} = v + a \cdot \Delta t`,
-	position_update: String.raw`x_{\text{new}} = x + v \cdot \Delta t`,
-	accel_vec: String.raw`\vec{a}_i = \frac{\vec{F}_{\text{net}, i}}{m_i}`,
-	sigma_f: String.raw`\Sigma F = m a`,
+    F_ij: String.raw`F_{ij} = G \cdot \frac{m_i \cdot m_j}{r_{ij}^2}`,
+    F_net: String.raw`\vec{F}_{\text{net}, i} = \sum_{j \neq i} \vec{F}_{ij}`,
+    leapfrog1: String.raw`\begin{aligned} \vec{v}(t + \frac{\Delta t}{2}) &= \vec{v}(t) + \vec{a}(t) \cdot \frac{\Delta t}{2} \\ \vec{x}(t + \Delta t) &= \vec{x}(t) + \vec{v}(t + \frac{\Delta t}{2}) \cdot \Delta t \end{aligned}`,
+    leapfrog2: String.raw`\vec{v}(t + \Delta t) = \vec{v}(t + \frac{\Delta t}{2}) + \vec{a}(t + \Delta t) \cdot \frac{\Delta t}{2}`,
+    force_soft: String.raw`F_{ij} = G \cdot \frac{m_i \cdot m_j}{(r_{ij}^2 + \varepsilon^2)^{3/2}} \cdot \vec{r}_{ij}`,
+    energy: String.raw`E_{\text{total}} = \sum_i \frac{1}{2} m_i v_i^2 - \sum_{i < j} G \frac{m_i m_j}{\sqrt{r_{ij}^2 + \varepsilon^2}}`,
+    F_simple: String.raw`F = G \frac{m_1 m_2}{r^2}`,
+    v_half: String.raw`v_{\text{half}} = v + a \cdot \frac{\Delta t}{2}`,
+    x_new: String.raw`x_{\text{new}} = x + v_{\text{half}} \cdot \Delta t`,
+    F_basic: String.raw`F = G \frac{m_1 m_2}{r^2}`,
+    accel: String.raw`a = \frac{F}{m}`,
+    velocity_update: String.raw`v_{\text{new}} = v + a \cdot \Delta t`,
+    position_update: String.raw`x_{\text{new}} = x + v \cdot \Delta t`,
+    accel_vec: String.raw`\vec{a}_i = \frac{\vec{F}_{\text{net}, i}}{m_i}`,
+    sigma_f: String.raw`\Sigma F = m a`,
 };
 
 export const explanations = {
-	advanced: `
+    advanced: `
     <p>A multi‑threaded particle simulation demonstrating core concepts from <strong>AP Physics C (Mechanics)</strong> and <strong>AP Calculus BC</strong>. Every aspect of the simulation is grounded in rigorous vector calculus and differential equations.</p>
     <h3>PHYSICS FOUNDATION</h3>
     <p><span class="highlight">Newton's Law of Universal Gravitation</span> in vector form: each pair of particles exerts an attractive force along the line connecting them. The magnitude is proportional to the product of their masses and inversely proportional to the square of their separation.</p>
@@ -62,7 +62,7 @@ export const explanations = {
     <div class="equation">${renderFormula(eq.energy)}</div>
     <p>Monitoring the relative change in total energy over time validates the integrator's performance. A well‑tuned Leapfrog integrator should exhibit energy drift well below 0.1% per thousand steps.</p>
   `,
-	intermediate: `
+    intermediate: `
     <p>A multi‑threaded particle simulation aligned with <strong>AP Physics 1</strong> (algebra‑based) and <strong>AP Calculus AB</strong>. The core principles are explained without vector calculus, though the underlying simulation still uses full 3D vectors.</p>
     <h3>PHYSICS (AP Physics 1)</h3>
     <p><span class="highlight">Newton's Law of Universal Gravitation:</span> the gravitational force between two point masses is directly proportional to the product of their masses and inversely proportional to the square of the distance between their centers.</p>
@@ -85,7 +85,7 @@ export const explanations = {
     <p><span class="highlight">Δt:</span> Time step for integration. Decreasing Δt improves accuracy at the cost of slower visual progression.</p>
     <p><span class="highlight">Inject Black Hole:</span> Turns the most distant particle into a supermassive black hole, dramatically warping the surrounding orbits.</p>
   `,
-	middle: `
+    middle: `
     <p>A computer model of a galaxy, built using <strong>Algebra I & II</strong> and introductory physical science concepts. No calculus is required to understand the core ideas.</p>
     <h3>GRAVITY: THE INVERSE‑SQUARE LAW</h3>
     <p>The force of gravity between two objects depends on their masses and the distance between them. If you double the distance, the force becomes one‑fourth as strong. This is called an <span class="highlight">inverse‑square relationship</span>.</p>
@@ -106,7 +106,7 @@ export const explanations = {
     <p><span class="highlight">Δt:</span> Changes the size of the time step. Larger steps make the simulation run faster but may look jerky or physically inaccurate.</p>
     <p><span class="highlight">Inject Black Hole:</span> Transforms the farthest star into an extremely massive object, dramatically warping the orbits of surrounding stars.</p>
   `,
-	basic: `
+    basic: `
     <p>This is a model of stars moving under the force of gravity. No advanced math is required to enjoy it!</p>
     <h3>WHAT IS GRAVITY?</h3>
     <p>Gravity is an attractive force between objects that have mass. <span class="highlight">More mass means a stronger pull. Closer together means a stronger pull.</span></p>
@@ -124,7 +124,7 @@ export const explanations = {
     <h3>COLORS</h3>
     <p>Blue stars are moving slowly. Red and orange stars are moving fast. The glow makes fast‑moving regions stand out.</p>
   `,
-	tech: `
+    tech: `
     <h3>FRONTEND & RENDERING</h3>
     <p><span class="tech-badge">Three.js r184</span> <span class="tech-badge">postprocessing v6.39</span></p>
     <p>WebGL rendering with the UnrealBloomPass effect produces a vivid neon glow. Custom fragment shaders create the black hole accretion disk resembling the M87* image. The galaxy is composed of multiple particle layers (bulge, dust, halo) for realistic depth.</p>

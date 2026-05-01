@@ -33,59 +33,59 @@ const lensingFragmentShader = `
 `;
 
 export class PostFX {
-	public composer: EffectComposer;
-	public bloomPass: UnrealBloomPass;
-	private lensingPass: ShaderPass;
-	private lensingUniforms: any;
+    public composer: EffectComposer;
+    public bloomPass: UnrealBloomPass;
+    private lensingPass: ShaderPass;
+    private lensingUniforms: any;
 
-	constructor(renderer: WebGLRenderer, scene: Scene, camera: PerspectiveCamera) {
-		this.composer = new EffectComposer(renderer);
-		const renderPass = new RenderPass(scene, camera);
-		this.composer.addPass(renderPass);
+    constructor(renderer: WebGLRenderer, scene: Scene, camera: PerspectiveCamera) {
+        this.composer = new EffectComposer(renderer);
+        const renderPass = new RenderPass(scene, camera);
+        this.composer.addPass(renderPass);
 
-		this.bloomPass = new UnrealBloomPass(
-			new Vector2(window.innerWidth, window.innerHeight),
-			1.5,
-			0.4,
-			0.85,
-		);
-		this.bloomPass.threshold = 0.5;
-		this.bloomPass.strength = 1.5;
-		this.bloomPass.radius = 0.8;
-		this.composer.addPass(this.bloomPass);
+        this.bloomPass = new UnrealBloomPass(
+            new Vector2(window.innerWidth, window.innerHeight),
+            1.5,
+            0.4,
+            0.85,
+        );
+        this.bloomPass.threshold = 0.5;
+        this.bloomPass.strength = 1.5;
+        this.bloomPass.radius = 0.8;
+        this.composer.addPass(this.bloomPass);
 
-		this.lensingUniforms = {
-			tDiffuse: { value: null },
-			uBlackHoleScreenPos: { value: new Vector2(0.5, 0.5) },
-			uStrength: { value: 0.015 },
-			uAspect: { value: window.innerWidth / window.innerHeight },
-		};
-		const lensingMat = new ShaderMaterial({
-			uniforms: this.lensingUniforms,
-			vertexShader: lensingVertexShader,
-			fragmentShader: lensingFragmentShader,
-		});
-		this.lensingPass = new ShaderPass(lensingMat);
-		this.lensingPass.renderToScreen = true;
-		this.composer.addPass(this.lensingPass);
-	}
+        this.lensingUniforms = {
+            tDiffuse: { value: null },
+            uBlackHoleScreenPos: { value: new Vector2(0.5, 0.5) },
+            uStrength: { value: 0.015 },
+            uAspect: { value: window.innerWidth / window.innerHeight },
+        };
+        const lensingMat = new ShaderMaterial({
+            uniforms: this.lensingUniforms,
+            vertexShader: lensingVertexShader,
+            fragmentShader: lensingFragmentShader,
+        });
+        this.lensingPass = new ShaderPass(lensingMat);
+        this.lensingPass.renderToScreen = true;
+        this.composer.addPass(this.lensingPass);
+    }
 
-	public setBloomIntensity(value: number) {
-		this.bloomPass.strength = value;
-	}
+    public setBloomIntensity(value: number) {
+        this.bloomPass.strength = value;
+    }
 
-	public setLensingScreenPos(screenPos: Vector2, blackHoleRadius: number = 1.0) {
-		this.lensingUniforms.uBlackHoleScreenPos.value.copy(screenPos);
-		this.lensingUniforms.uStrength.value = 0.008 * blackHoleRadius;
-		this.lensingUniforms.uAspect.value = window.innerWidth / window.innerHeight;
-	}
+    public setLensingScreenPos(screenPos: Vector2, blackHoleRadius: number = 1.0) {
+        this.lensingUniforms.uBlackHoleScreenPos.value.copy(screenPos);
+        this.lensingUniforms.uStrength.value = 0.008 * blackHoleRadius;
+        this.lensingUniforms.uAspect.value = window.innerWidth / window.innerHeight;
+    }
 
-	public setSize(width: number, height: number) {
-		this.composer.setSize(width, height);
-		this.lensingUniforms.uAspect.value = width / height;
-	}
+    public setSize(width: number, height: number) {
+        this.composer.setSize(width, height);
+        this.lensingUniforms.uAspect.value = width / height;
+    }
 
-	public render() {
-		this.composer.render();
-	}
+    public render() {
+        this.composer.render();
+    }
 }
