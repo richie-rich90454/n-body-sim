@@ -5,7 +5,7 @@ export class RotCurve {
     private ctx: CanvasRenderingContext2D;
     private width = 200;
     private height = 150;
-
+    private maxRadius = 400;
     constructor() {
         this.canvas = document.createElement("canvas");
         this.canvas.width = this.width;
@@ -23,10 +23,11 @@ export class RotCurve {
 
     public update(data: Float32Array, maxRadius: number) {
         const bins = 40;
-        const binSize = maxRadius / bins;
+        const binSize = this.maxRadius / bins;
         const sumV = new Float32Array(bins);
         const countV = new Uint32Array(bins);
         const count = data.length / STRIDE;
+
         for (let i = 0; i < count; i++) {
             const base = i * STRIDE;
             const x = data[base],
@@ -36,14 +37,23 @@ export class RotCurve {
                 vy = data[base + 4],
                 vz = data[base + 5];
             const r = Math.sqrt(x * x + y * y + z * z);
-            if (r > maxRadius) continue;
+
+            if (r > this.maxRadius) continue;
+
+            if (i === 0) continue;
+
+            if (!isFinite(vx) || !isFinite(vy) || !isFinite(vz)) continue;
+
+            const speed = Math.sqrt(vx * vx + vy * vy + vz * vz);
+            const tang = r > 0.01 ? Math.abs((x * vy - y * vx) / (r * r + 0.001)) : 0;
+
+            const tangCapped = Math.min(tang, speed * 3);
+
             const bin = Math.min(bins - 1, Math.floor(r / binSize));
-            const tang =
-                Math.sqrt(vx * vx + vy * vy + vz * vz) *
-                (r > 0.01 ? Math.abs((x * vy - y * vx) / (r * r + 0.001)) : 0);
-            sumV[bin] += tang;
+            sumV[bin] += tangCapped;
             countV[bin]++;
         }
+
         const ctx = this.ctx;
         ctx.clearRect(0, 0, this.width, this.height);
         ctx.strokeStyle = "rgba(180,220,255,0.8)";
@@ -53,6 +63,7 @@ export class RotCurve {
         ctx.moveTo(10, 10);
         ctx.lineTo(10, this.height - 10);
         ctx.stroke();
+
         let maxVel = 0;
         for (let i = 0; i < bins; i++) {
             if (countV[i] > 0) {
@@ -60,7 +71,8 @@ export class RotCurve {
                 if (avg > maxVel) maxVel = avg;
             }
         }
-        maxVel = Math.max(maxVel, 0.01);
+        if (maxVel < 0.01) maxVel = 0.01;
+
         const graphH = this.height - 20;
         const graphW = this.width - 20;
         ctx.fillStyle = "rgba(140,200,255,0.7)";
@@ -71,6 +83,7 @@ export class RotCurve {
             const y = this.height - 10 - (avg / maxVel) * graphH;
             ctx.fillRect(x - 1, y - 1, 2, 2);
         }
+
         ctx.fillStyle = "rgba(180,220,255,0.9)";
         ctx.font = "8px monospace";
         ctx.fillText("v", 12, 15);
