@@ -6,7 +6,7 @@ import { PostFX } from "./visuals/PostFX";
 import { UIController, SimConfig } from "./visuals/UIController";
 import { updateFPSDisplay, updateEnergyDisplay } from "./ui";
 
-const GALAXY_RADIUS = 400;
+const GALAXY_RADIUS = 500;
 
 export const config: SimConfig = {
 	gravitationalConstant: 2,
