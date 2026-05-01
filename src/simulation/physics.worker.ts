@@ -1,5 +1,6 @@
 const STRIDE = 7;
 let allData: Float32Array;
+
 self.onmessage = (e: MessageEvent) => {
 	const msg = e.data;
 	if (msg.type === "init") {

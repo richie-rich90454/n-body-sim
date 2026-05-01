@@ -3,7 +3,7 @@ export const STRIDE = 7;
 export function initializeGalaxy(particleCount: number, radius: number): Float32Array {
 	const data = new Float32Array(particleCount * STRIDE);
 
-	const G = 1.0;
+	const G = 2.0;
 	const centralMass = 20000;
 	const diskMass = 50000;
 	const haloVmax = 4.0;
@@ -23,7 +23,6 @@ export function initializeGalaxy(particleCount: number, radius: number): Float32
 
 	for (let i = 0; i < particleCount; i++) {
 		const idx = i * STRIDE;
-
 		if (i === 0) {
 			data[idx] = 0;
 			data[idx + 1] = 0;
@@ -34,7 +33,6 @@ export function initializeGalaxy(particleCount: number, radius: number): Float32
 			data[idx + 6] = centralMass;
 			continue;
 		}
-
 		const r = Math.pow(Math.random(), 1.5) * radius;
 		const theta = Math.random() * Math.PI * 2;
 		const phi = Math.acos(2 * Math.random() - 1);
@@ -60,6 +58,5 @@ export function initializeGalaxy(particleCount: number, radius: number): Float32
 		data[idx + 5] = vz;
 		data[idx + 6] = uniformMass;
 	}
-
 	return data;
 }

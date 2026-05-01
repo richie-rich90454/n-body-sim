@@ -5,8 +5,10 @@ import { ParticleSystem } from "./visuals/ParticleSystem";
 import { PostFX } from "./visuals/PostFX";
 import { UIController, SimConfig } from "./visuals/UIController";
 import { updateFPSDisplay, updateEnergyDisplay } from "./ui";
+import { RotCurve } from "./visuals/RotCurve";
+import { Vector2 } from "three";
 
-const GALAXY_RADIUS = 500;
+const GALAXY_RADIUS = 400;
 
 export const config: SimConfig = {
 	gravitationalConstant: 2,
@@ -14,10 +16,11 @@ export const config: SimConfig = {
 	blackHoleMass: 150000,
 	timeStep: 0.016,
 	integrationSteps: 2,
-	bloomIntensity: 1.2,
-	particleSize: 1.8,
+	bloomIntensity: 1.5,
+	particleSize: 4.0,
 	timeScale: 1.0,
 	isPaused: false,
+	autoRotate: true,
 	particleCount: 6000,
 	injectBlackHole: () => {},
 	resetGalaxy: () => {},
@@ -32,30 +35,31 @@ let blackHoleIndex = 0;
 let initialEnergy = 0;
 let energyDrift = 0;
 let lastEnergyCheck = performance.now();
+let rotCurve: RotCurve;
 
 function computeTotalEnergy(data: Float32Array, G: number, softeningSq: number): number {
 	const count = data.length / STRIDE;
-	let kinetic = 0;
-	let potential = 0;
+	let kinetic = 0,
+		potential = 0;
 	for (let i = 0; i < count; i++) {
 		const i7 = i * STRIDE;
-		const vx = data[i7 + 3];
-		const vy = data[i7 + 4];
-		const vz = data[i7 + 5];
-		const m = data[i7 + 6];
+		const vx = data[i7 + 3],
+			vy = data[i7 + 4],
+			vz = data[i7 + 5],
+			m = data[i7 + 6];
 		kinetic += 0.5 * m * (vx * vx + vy * vy + vz * vz);
 	}
 	for (let i = 0; i < count; i++) {
 		const i7 = i * STRIDE;
-		const px = data[i7];
-		const py = data[i7 + 1];
-		const pz = data[i7 + 2];
-		const mi = data[i7 + 6];
+		const px = data[i7],
+			py = data[i7 + 1],
+			pz = data[i7 + 2],
+			mi = data[i7 + 6];
 		for (let j = i + 1; j < count; j++) {
 			const j7 = j * STRIDE;
-			const dx = data[j7] - px;
-			const dy = data[j7 + 1] - py;
-			const dz = data[j7 + 2] - pz;
+			const dx = data[j7] - px,
+				dy = data[j7 + 1] - py,
+				dz = data[j7 + 2] - pz;
 			const distSq = dx * dx + dy * dy + dz * dz + softeningSq;
 			const mj = data[j7 + 6];
 			potential -= (G * mi * mj) / Math.sqrt(distSq);
@@ -83,7 +87,11 @@ export function createSimulation(particleCount: number) {
 	simManager = new SimulationManager(initialData, workerCount);
 	if (particleSystem) {
 		renderer.scene.remove(particleSystem.points);
+		renderer.scene.remove(particleSystem.bulgePoints);
+		renderer.scene.remove(particleSystem.dustPoints);
+		renderer.scene.remove(particleSystem.haloPoints);
 		if (particleSystem.blackHoleSprite) renderer.scene.remove(particleSystem.blackHoleSprite);
+		if (particleSystem.backgroundStars) renderer.scene.remove(particleSystem.backgroundStars);
 		particleSystem.dispose();
 	}
 	particleSystem = new ParticleSystem(particleCount);
@@ -92,16 +100,19 @@ export function createSimulation(particleCount: number) {
 	renderer.scene.add(particleSystem.dustPoints);
 	renderer.scene.add(particleSystem.haloPoints);
 	if (particleSystem.blackHoleSprite) renderer.scene.add(particleSystem.blackHoleSprite);
+	if (particleSystem.backgroundStars) renderer.scene.add(particleSystem.backgroundStars);
 	simManager.onUpdate = (data) => {
 		particleSystem.update(data, config.particleSize, blackHoleIndex);
 	};
 	blackHoleIndex = 0;
 	resetEnergyBaseline();
+	if (!rotCurve) rotCurve = new RotCurve();
 }
 
 let lastTime = performance.now();
 let frameCount = 0;
 let fpsTimer = performance.now();
+let rotCurveCounter = 0;
 
 export function animationLoop() {
 	requestAnimationFrame(animationLoop);
@@ -125,7 +136,23 @@ export function animationLoop() {
 		energyDrift = Math.abs((currentEnergy - initialEnergy) / initialEnergy) * 100;
 		updateEnergyDisplay(energyDrift);
 	}
-	renderer.controls.autoRotate = !config.isPaused;
+	const cameraPos = renderer.camera.position;
+	const distToCenter = Math.sqrt(
+		cameraPos.x * cameraPos.x + cameraPos.y * cameraPos.y + cameraPos.z * cameraPos.z,
+	);
+	const bloomFactor = 1.0 / (distToCenter / 300 + 1.0) + 0.3;
+	postFX.setBloomIntensity(config.bloomIntensity * Math.max(0.5, bloomFactor));
+
+	const bhPos = particleSystem.getBlackHoleWorldPos();
+	if (bhPos) {
+		const screenPos = bhPos.clone().project(renderer.camera);
+		postFX.setLensingScreenPos(new Vector2((screenPos.x + 1) / 2, (-screenPos.y + 1) / 2), 1.2);
+	} else {
+		postFX.setLensingScreenPos(new Vector2(0.5, 0.5), 0.0);
+	}
+
+	renderer.controls.autoRotate = config.autoRotate && !config.isPaused;
+
 	if (!config.isPaused) {
 		const effectiveDt = config.timeStep * config.timeScale;
 		simManager.step({
@@ -137,9 +164,13 @@ export function animationLoop() {
 	} else {
 		if (simManager.onUpdate) simManager.onUpdate(simManager.particleData);
 	}
-	postFX.setBloomIntensity(config.bloomIntensity);
 	renderer.controls.update();
 	postFX.render();
+
+	rotCurveCounter++;
+	if (rotCurveCounter % 15 === 0 && rotCurve) {
+		rotCurve.update(simManager.particleData, GALAXY_RADIUS);
+	}
 }
 
 export function setupResizeHandler() {
@@ -151,13 +182,13 @@ export function setupResizeHandler() {
 
 export function injectBlackHole() {
 	const count = simManager.particleData.length / STRIDE;
-	let newIndex = 0;
-	let maxDist = -Infinity;
+	let newIndex = 0,
+		maxDist = -Infinity;
 	for (let i = 0; i < count; i++) {
 		const idx = i * STRIDE;
-		const x = simManager.particleData[idx];
-		const y = simManager.particleData[idx + 1];
-		const z = simManager.particleData[idx + 2];
+		const x = simManager.particleData[idx],
+			y = simManager.particleData[idx + 1],
+			z = simManager.particleData[idx + 2];
 		const dist = Math.sqrt(x * x + y * y + z * z);
 		if (dist > maxDist) {
 			maxDist = dist;
@@ -182,7 +213,6 @@ export function resetGalaxy() {
 export function getSimManager() {
 	return simManager;
 }
-
 export function getParticleSystem() {
 	return particleSystem;
 }

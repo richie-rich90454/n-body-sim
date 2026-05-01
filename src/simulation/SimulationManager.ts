@@ -1,10 +1,12 @@
 import { STRIDE } from "../math/PhysicsEngine";
+
 interface StepConfig {
 	G: number;
 	DT: number;
 	SOFTENING: number;
 	STEPS: number;
 }
+
 export class SimulationManager {
 	private workers: Worker[] = [];
 	private busyWorkers = 0;
@@ -20,32 +22,31 @@ export class SimulationManager {
 	private stepInProgress = false;
 	private accelArray: Float32Array;
 	private count: number;
-	private sharedBuffer: SharedArrayBuffer;
-	private initMessageSent = false;
+
 	constructor(initialData: Float32Array, workerCount: number) {
-		this.sharedBuffer = new SharedArrayBuffer(
-			initialData.length * Float32Array.BYTES_PER_ELEMENT,
-		);
-		this.particleData = new Float32Array(this.sharedBuffer);
+		this.count = initialData.length / STRIDE;
+		const sab = new SharedArrayBuffer(initialData.length * Float32Array.BYTES_PER_ELEMENT);
+		this.particleData = new Float32Array(sab);
 		this.particleData.set(initialData);
-		this.count = this.particleData.length / STRIDE;
 		this.accelArray = new Float32Array(this.count * 3);
+
 		for (let i = 0; i < workerCount; i++) {
 			const worker = new Worker(new URL("./physics.worker.ts", import.meta.url), {
 				type: "module",
 			});
 			worker.onmessage = this.handleWorkerMessage.bind(this);
+			worker.postMessage({ type: "init", buffer: sab });
 			this.workers.push(worker);
-			worker.postMessage({ type: "init", buffer: this.sharedBuffer });
 		}
 	}
+
 	private handleWorkerMessage(e: MessageEvent) {
+		const { accel, startIdx } = e.data;
 		if (this.resetRequested) {
 			this.busyWorkers--;
 			if (this.busyWorkers === 0) this.finishReset();
 			return;
 		}
-		const { accel, startIdx } = e.data;
 		if (accel && accel.length > 0) {
 			this.accelArray.set(accel, startIdx * 3);
 		}
@@ -54,6 +55,7 @@ export class SimulationManager {
 			this.onPhaseComplete();
 		}
 	}
+
 	private onPhaseComplete() {
 		if (this.stepPhase === 0) {
 			const subDt = this.subDt;
@@ -72,6 +74,7 @@ export class SimulationManager {
 			this.stepPhase = 1;
 			this.dispatchAccelWorkers();
 		} else {
+			// SECOND half‑kick using accelerations from new positions
 			const subDt = this.subDt;
 			for (let i = 0; i < this.count; i++) {
 				const i7 = i * STRIDE;
@@ -82,6 +85,7 @@ export class SimulationManager {
 				this.particleData[i7 + 4] += ay * subDt * 0.5;
 				this.particleData[i7 + 5] += az * subDt * 0.5;
 			}
+			// advance to next sub‑step (or finish)
 			this.stepIndex++;
 			if (this.stepIndex < this.stepConfig!.STEPS) {
 				this.startSubStep();
@@ -96,6 +100,7 @@ export class SimulationManager {
 			}
 		}
 	}
+
 	private dispatchAccelWorkers() {
 		const config = this.stepConfig!;
 		const workerCount = this.workers.length;
@@ -116,6 +121,7 @@ export class SimulationManager {
 			});
 		}
 	}
+
 	private startStep(config: StepConfig) {
 		this.stepConfig = config;
 		this.stepInProgress = true;
@@ -123,22 +129,25 @@ export class SimulationManager {
 		this.subDt = config.DT / config.STEPS;
 		this.startSubStep();
 	}
+
 	private startSubStep() {
 		this.stepPhase = 0;
 		this.dispatchAccelWorkers();
 	}
+
 	private finishReset() {
 		if (this.newDataAfterReset) {
-			this.sharedBuffer = new SharedArrayBuffer(
+			// re‑create the shared buffer and re‑init all workers
+			const sab = new SharedArrayBuffer(
 				this.newDataAfterReset.length * Float32Array.BYTES_PER_ELEMENT,
 			);
-			this.particleData = new Float32Array(this.sharedBuffer);
+			this.particleData = new Float32Array(sab);
 			this.particleData.set(this.newDataAfterReset);
 			this.count = this.particleData.length / STRIDE;
 			this.accelArray = new Float32Array(this.count * 3);
 			this.newDataAfterReset = null;
 			for (const w of this.workers) {
-				w.postMessage({ type: "init", buffer: this.sharedBuffer });
+				w.postMessage({ type: "init", buffer: sab });
 			}
 		}
 		this.resetRequested = false;
@@ -146,6 +155,7 @@ export class SimulationManager {
 		this.pendingData = null;
 		if (this.onUpdate) this.onUpdate(this.particleData);
 	}
+
 	public step(config: StepConfig) {
 		if (this.busyWorkers > 0 || this.stepInProgress) {
 			this.pendingData = config;
@@ -154,14 +164,17 @@ export class SimulationManager {
 		if (this.resetRequested) return;
 		this.startStep(config);
 	}
+
 	public setParticleMass(index: number, mass: number) {
 		this.particleData[index * STRIDE + 6] = mass;
 	}
+
 	public reset(newData: Float32Array) {
 		this.resetRequested = true;
 		this.newDataAfterReset = newData;
 		if (this.busyWorkers === 0 && !this.stepInProgress) this.finishReset();
 	}
+
 	public terminate() {
 		this.workers.forEach((w) => w.terminate());
 		this.workers = [];

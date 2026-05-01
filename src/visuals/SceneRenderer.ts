@@ -19,7 +19,7 @@ export class SceneRenderer {
 		this.scene.background = new Color(0x000000);
 
 		this.camera = new PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 5000);
-		this.camera.position.set(0, 300, 800);
+		this.camera.position.set(0, 10, 200);
 		this.camera.lookAt(0, 0, 0);
 
 		this.renderer = new WebGLRenderer({ antialias: true, alpha: false });
@@ -31,7 +31,7 @@ export class SceneRenderer {
 		this.controls.enableDamping = true;
 		this.controls.dampingFactor = 0.05;
 		this.controls.autoRotate = true;
-		this.controls.autoRotateSpeed = 0.8;
+		this.controls.autoRotateSpeed = 0.5;
 		this.controls.enableZoom = true;
 		this.controls.enablePan = true;
 		this.controls.target.set(0, 0, 0);

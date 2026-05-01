@@ -10,6 +10,7 @@ export interface SimConfig {
 	particleSize: number;
 	timeScale: number;
 	isPaused: boolean;
+	autoRotate: boolean;
 	particleCount: number;
 	injectBlackHole: () => void;
 	resetGalaxy: () => void;
@@ -26,6 +27,7 @@ export class UIController {
 		this.setupPhysicsFolder();
 		this.setupCalculusFolder();
 		this.setupVisualsFolder();
+		this.setupCameraFolder();
 		this.setupSimulationFolder();
 	}
 
@@ -48,9 +50,15 @@ export class UIController {
 	private setupVisualsFolder() {
 		const vis = this.gui.addFolder("Rendering");
 		vis.add(this.config, "timeScale", 0.1, 3.0, 0.1).name("Time Scale");
-		vis.add(this.config, "particleSize", 0.5, 8.0, 0.1).name("Point Size");
+		vis.add(this.config, "particleSize", 2.0, 6.0, 0.1).name("Point Size");
 		vis.add(this.config, "bloomIntensity", 0.0, 3.0, 0.1).name("Bloom Intensity");
 		vis.add(this.config, "isPaused").name("Pause Simulation");
+	}
+
+	private setupCameraFolder() {
+		const cam = this.gui.addFolder("Camera");
+		cam.add(this.config, "autoRotate").name("Auto Rotate");
+		cam.open();
 	}
 
 	private setupSimulationFolder() {
