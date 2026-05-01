@@ -31,40 +31,93 @@ export class UIController {
         this.setupSimulationFolder();
     }
 
+    private addTooltip(controller: any, text: string): void {
+        controller.domElement.title = text;
+    }
+
     private setupPhysicsFolder() {
         const phys = this.gui.addFolder("AP Physics C: Mechanics");
-        phys.add(this.config, "gravitationalConstant", 1.0, 4.0, 0.01).name("G Constant").listen();
-        phys.add(this.config, "softeningEpsilon", 1.0, 50.0, 0.5).name("Softening (e)").listen();
-        phys.add(this.config, "blackHoleMass", 5000, 500000, 1000).name("Singular Mass");
-        phys.add(this.config, "injectBlackHole").name("Inject Black Hole");
-        phys.add(this.config, "resetGalaxy").name("Reset Galaxy");
+        const gCtrl = phys
+            .add(this.config, "gravitationalConstant", 1.0, 4.0, 0.01)
+            .name("G Constant");
+        gCtrl.listen();
+        this.addTooltip(gCtrl, "Scales the overall strength of gravity (default 2.0)");
+        const epsCtrl = phys
+            .add(this.config, "softeningEpsilon", 1.0, 50.0, 0.5)
+            .name("Softening (e)");
+        epsCtrl.listen();
+        this.addTooltip(
+            epsCtrl,
+            "Smooths forces at very small distances to prevent extreme accelerations (default 10.0)",
+        );
+        const massCtrl = phys
+            .add(this.config, "blackHoleMass", 5000, 500000, 1000)
+            .name("Singular Mass");
+        this.addTooltip(massCtrl, "Mass to assign to the injected black hole (default 150000)");
+        const injectCtrl = phys.add(this.config, "injectBlackHole").name("Inject Black Hole");
+        this.addTooltip(injectCtrl, "Turn the farthest particle into a supermassive black hole");
+        const resetCtrl = phys.add(this.config, "resetGalaxy").name("Reset Galaxy");
+        this.addTooltip(resetCtrl, "Restart the simulation with the current particle count");
         phys.open();
     }
 
     private setupCalculusFolder() {
         const calc = this.gui.addFolder("AP Calculus BC: Integration");
-        calc.add(this.config, "timeStep", 0.005, 0.05, 0.001).name("Dt (Time Step)").listen();
-        calc.add(this.config, "integrationSteps", 1, 5, 1).name("Sub-steps per frame").listen();
+        const dtCtrl = calc.add(this.config, "timeStep", 0.005, 0.05, 0.001).name("Dt (Time Step)");
+        dtCtrl.listen();
+        this.addTooltip(
+            dtCtrl,
+            "Integration time step; smaller values give more accurate orbits (default 0.016)",
+        );
+        const subCtrl = calc
+            .add(this.config, "integrationSteps", 1, 5, 1)
+            .name("Sub-steps per frame");
+        subCtrl.listen();
+        this.addTooltip(
+            subCtrl,
+            "Divides each frame's time step into smaller integration increments (default 2)",
+        );
     }
 
     private setupVisualsFolder() {
         const vis = this.gui.addFolder("Rendering");
-        vis.add(this.config, "timeScale", 0.1, 3.0, 0.1).name("Time Scale");
-        vis.add(this.config, "particleSize", 2.0, 6.0, 0.1).name("Point Size");
-        vis.add(this.config, "bloomIntensity", 0.0, 3.0, 0.1).name("Bloom Intensity");
-        vis.add(this.config, "isPaused").name("Pause Simulation");
+        const tsCtrl = vis.add(this.config, "timeScale", 0.1, 3.0, 0.1).name("Time Scale");
+        this.addTooltip(
+            tsCtrl,
+            "Multiplier for simulation speed relative to real-time (default 1.0)",
+        );
+        const psCtrl = vis.add(this.config, "particleSize", 2.0, 6.0, 0.1).name("Point Size");
+        this.addTooltip(
+            psCtrl,
+            "Base size of star points, scaled with camera distance (default 4.0)",
+        );
+        const bloomCtrl = vis
+            .add(this.config, "bloomIntensity", 0.0, 3.0, 0.1)
+            .name("Bloom Intensity");
+        this.addTooltip(
+            bloomCtrl,
+            "Strength of the neon glow effect; automatically reduced when zoomed out (default 1.5)",
+        );
+        const pauseCtrl = vis.add(this.config, "isPaused").name("Pause Simulation");
+        this.addTooltip(pauseCtrl, "Pause or resume the physics and rendering");
     }
 
     private setupCameraFolder() {
         const cam = this.gui.addFolder("Camera");
-        cam.add(this.config, "autoRotate").name("Auto Rotate");
+        const arCtrl = cam.add(this.config, "autoRotate").name("Auto Rotate");
+        this.addTooltip(arCtrl, "Automatically rotate the camera around the galaxy");
         cam.open();
     }
 
     private setupSimulationFolder() {
         const sim = this.gui.addFolder("Simulation");
-        sim.add(this.config, "particleCount", 1000, 20000, 500)
+        const countCtrl = sim
+            .add(this.config, "particleCount", 1000, 20000, 500)
             .name("Particle Count")
             .onChange(() => this.config.resetGalaxy());
+        this.addTooltip(
+            countCtrl,
+            "Number of star particles; changing this resets the simulation (default 6000)",
+        );
     }
 }
