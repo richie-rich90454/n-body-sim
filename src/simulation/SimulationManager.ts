@@ -1,115 +1,161 @@
+// src/simulation/SimulationManager.ts
 import { STRIDE } from "../math/PhysicsEngine";
-
-interface WorkerMessage {
-	slice: Float32Array;
-	startIdx: number;
+interface StepConfig {
+	G: number;
+	DT: number;
+	SOFTENING: number;
+	STEPS: number;
 }
-
 export class SimulationManager {
 	private workers: Worker[] = [];
 	private busyWorkers = 0;
 	public particleData: Float32Array;
 	public onUpdate: ((data: Float32Array) => void) | null = null;
-	private pendingData: any = null;
+	private pendingData: StepConfig | null = null;
 	private resetRequested = false;
 	private newDataAfterReset: Float32Array | null = null;
-
+	private stepConfig: StepConfig | null = null;
+	private stepIndex = 0;
+	private stepPhase = 0;
+	private subDt = 0;
+	private stepInProgress = false;
+	private accelArray: Float32Array;
+	private count: number;
 	constructor(initialData: Float32Array, workerCount: number) {
 		this.particleData = new Float32Array(initialData);
+		this.count = initialData.length / STRIDE;
+		this.accelArray = new Float32Array(this.count * 3);
 		for (let i = 0; i < workerCount; i++) {
 			const worker = new Worker(new URL("./physics.worker.ts", import.meta.url), {
 				type: "module",
 			});
-			worker.onmessage = this.handleWorkerMessage.bind(this, i);
+			worker.onmessage = this.handleWorkerMessage.bind(this);
 			this.workers.push(worker);
 		}
 	}
-
-	private handleWorkerMessage(workerIndex: number, e: MessageEvent<WorkerMessage>) {
-		const { slice, startIdx } = e.data;
+	private handleWorkerMessage(e: MessageEvent) {
+		const { accel, startIdx } = e.data;
 		if (this.resetRequested) {
 			this.busyWorkers--;
 			if (this.busyWorkers === 0) this.finishReset();
 			return;
 		}
-		this.particleData.set(slice, startIdx * STRIDE);
+		if (accel && accel.length > 0) {
+			this.accelArray.set(accel, startIdx * 3);
+		}
 		this.busyWorkers--;
 		if (this.busyWorkers === 0) {
-			if (this.onUpdate) this.onUpdate(this.particleData);
-			if (this.pendingData) {
-				this.step(this.pendingData);
-				this.pendingData = null;
+			this.onPhaseComplete();
+		}
+	}
+	private onPhaseComplete() {
+		if (this.stepPhase === 0) {
+			const subDt = this.subDt;
+			for (let i = 0; i < this.count; i++) {
+				const i7 = i * STRIDE;
+				const ax = this.accelArray[i * 3];
+				const ay = this.accelArray[i * 3 + 1];
+				const az = this.accelArray[i * 3 + 2];
+				this.particleData[i7 + 3] += ax * subDt * 0.5;
+				this.particleData[i7 + 4] += ay * subDt * 0.5;
+				this.particleData[i7 + 5] += az * subDt * 0.5;
+				this.particleData[i7] += this.particleData[i7 + 3] * subDt;
+				this.particleData[i7 + 1] += this.particleData[i7 + 4] * subDt;
+				this.particleData[i7 + 2] += this.particleData[i7 + 5] * subDt;
+			}
+			this.stepPhase = 1;
+			this.dispatchAccelWorkers();
+		} else {
+			const subDt = this.subDt;
+			for (let i = 0; i < this.count; i++) {
+				const i7 = i * STRIDE;
+				const ax = this.accelArray[i * 3];
+				const ay = this.accelArray[i * 3 + 1];
+				const az = this.accelArray[i * 3 + 2];
+				this.particleData[i7 + 3] += ax * subDt * 0.5;
+				this.particleData[i7 + 4] += ay * subDt * 0.5;
+				this.particleData[i7 + 5] += az * subDt * 0.5;
+			}
+			this.stepIndex++;
+			if (this.stepIndex < this.stepConfig!.STEPS) {
+				this.startSubStep();
+			} else {
+				this.stepInProgress = false;
+				if (this.onUpdate) this.onUpdate(this.particleData);
+				if (this.pendingData) {
+					const next = this.pendingData;
+					this.pendingData = null;
+					this.startStep(next);
+				}
 			}
 		}
 	}
-
+	private dispatchAccelWorkers() {
+		const allDataCopy = new Float32Array(this.particleData);
+		const config = this.stepConfig!;
+		const workerCount = this.workers.length;
+		const chunkSize = Math.ceil(this.count / workerCount);
+		this.busyWorkers = 0;
+		for (let w = 0; w < workerCount; w++) {
+			const startIdx = w * chunkSize;
+			const endIdx = Math.min(startIdx + chunkSize, this.count);
+			if (startIdx >= this.count) continue;
+			this.busyWorkers++;
+			this.workers[w].postMessage({
+				allData: allDataCopy,
+				startIdx,
+				endIdx,
+				count: this.count,
+				G: config.G,
+				softeningSq: config.SOFTENING * config.SOFTENING,
+			});
+		}
+	}
+	private startStep(config: StepConfig) {
+		this.stepConfig = config;
+		this.stepInProgress = true;
+		this.stepIndex = 0;
+		this.subDt = config.DT / config.STEPS;
+		this.startSubStep();
+	}
+	private startSubStep() {
+		this.stepPhase = 0;
+		this.dispatchAccelWorkers();
+	}
 	private finishReset() {
 		if (this.newDataAfterReset) {
 			this.particleData = new Float32Array(this.newDataAfterReset);
+			this.count = this.particleData.length / STRIDE;
+			this.accelArray = new Float32Array(this.count * 3);
 			this.newDataAfterReset = null;
 		}
 		this.resetRequested = false;
+		this.stepInProgress = false;
 		this.pendingData = null;
 		if (this.onUpdate) this.onUpdate(this.particleData);
 	}
-
-	public step(config: any) {
-		if (this.busyWorkers > 0) {
+	public step(config: StepConfig) {
+		if (this.busyWorkers > 0 || this.stepInProgress) {
 			this.pendingData = config;
 			return;
 		}
 		if (this.resetRequested) return;
-
-		const count = this.particleData.length / STRIDE;
-		const workerCount = this.workers.length;
-		const chunkSize = Math.ceil(count / workerCount);
-		this.busyWorkers = workerCount;
-
-		const allDataCopy = new Float32Array(this.particleData);
-
-		for (let w = 0; w < workerCount; w++) {
-			const startIdx = w * chunkSize;
-			const endIdx = Math.min(startIdx + chunkSize, count);
-			if (startIdx >= count) {
-				this.busyWorkers--;
-				continue;
-			}
-			const length = (endIdx - startIdx) * STRIDE;
-			const slice = new Float32Array(length);
-			slice.set(new Float32Array(this.particleData.buffer, startIdx * STRIDE * 4, length));
-
-			this.workers[w].postMessage(
-				{
-					myData: slice,
-					allData: allDataCopy,
-					startIdx,
-					endIdx,
-					count,
-					G: config.G,
-					DT: config.DT,
-					SOFTENING: config.SOFTENING,
-					STEPS: config.STEPS,
-				},
-				[slice.buffer],
-			);
-		}
+		this.startStep(config);
 	}
-
 	public setParticleMass(index: number, mass: number) {
 		this.particleData[index * STRIDE + 6] = mass;
 	}
-
 	public reset(newData: Float32Array) {
 		this.resetRequested = true;
 		this.newDataAfterReset = newData;
-		if (this.busyWorkers === 0) this.finishReset();
+		if (this.busyWorkers === 0 && !this.stepInProgress) this.finishReset();
 	}
-
 	public terminate() {
 		this.workers.forEach((w) => w.terminate());
 		this.workers = [];
 		this.busyWorkers = 0;
 		this.pendingData = null;
 		this.resetRequested = false;
+		this.stepInProgress = false;
 	}
 }
