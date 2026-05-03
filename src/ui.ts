@@ -1,4 +1,7 @@
+import mermaid from "mermaid";
 import { explanations } from "./explanations";
+
+mermaid.initialize({ startOnLoad: false, theme: "dark" });
 
 export function injectExplanations() {
     const advancedEl = document.getElementById("explanation-advanced");
@@ -11,6 +14,14 @@ export function injectExplanations() {
     if (middleEl) middleEl.innerHTML = explanations.middle;
     if (basicEl) basicEl.innerHTML = explanations.basic;
     if (techEl) techEl.innerHTML = explanations.tech;
+
+    const activePane = document.querySelector(".explanation-pane.active");
+    if (activePane) {
+        const mermaidElements = activePane.querySelectorAll("pre.mermaid");
+        if (mermaidElements.length > 0) {
+            mermaid.run({ nodes: Array.from(mermaidElements) as HTMLElement[] });
+        }
+    }
 }
 
 export function setupModalAndTabs() {
@@ -23,8 +34,16 @@ export function setupModalAndTabs() {
             tabs.forEach((t) => t.classList.remove("active"));
             panes.forEach((p) => p.classList.remove("active"));
             tab.classList.add("active");
-            const targetPane = document.getElementById(`explanation-${level}`);
-            if (targetPane) targetPane.classList.add("active");
+            const targetPane = document.getElementById(
+                `explanation-${level}`,
+            ) as HTMLElement | null;
+            if (targetPane) {
+                targetPane.classList.add("active");
+                const mermaidElements = targetPane.querySelectorAll("pre.mermaid");
+                if (mermaidElements.length > 0) {
+                    mermaid.run({ nodes: Array.from(mermaidElements) as HTMLElement[] });
+                }
+            }
         });
     });
 

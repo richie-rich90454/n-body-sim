@@ -1,5 +1,8 @@
 import katex from "katex";
 import "katex/dist/katex.min.css";
+import mermaid from "mermaid";
+
+mermaid.initialize({ startOnLoad: false, theme: "dark" });
 
 export function renderFormula(tex: string, displayMode: boolean = true): string {
     try {
@@ -11,6 +14,10 @@ export function renderFormula(tex: string, displayMode: boolean = true): string 
 
 export function renderInline(tex: string): string {
     return renderFormula(tex, false);
+}
+
+function mermaidDiagram(code: string): string {
+    return `<pre class="mermaid">${code}</pre>`;
 }
 
 export const eq = {
@@ -30,6 +37,41 @@ export const eq = {
     accel_vec: String.raw`\vec{a}_i = \frac{\vec{F}_{\text{net}, i}}{m_i}`,
     sigma_f: String.raw`\Sigma F = m a`,
 };
+
+const architectureDiagram = `
+flowchart TD
+    A[User Interface] --> B[lil‑gui Control Panel]
+    A --> C[Info Modal]
+    C --> D[KaTeX Explanations]
+    B --> E[SimConfig]
+    E --> F[animationLoop]
+    F --> G{WebGPU Available?}
+    G -->|Yes| H[WebGPUForce]
+    G -->|No| I[SimulationManager]
+    I --> J[Web Workers]
+    J --> K[SharedArrayBuffer]
+    H --> L[WGSL Compute Shaders]
+    L --> M[GPU Buffers]
+    M --> N[Staging Readback]
+    N --> P[ParticleSystem]
+    J --> O["leapfrog.ts (CPU)"]
+    O --> P
+    P --> Q[Three.js Renderer]
+    Q --> R["PostFX (Bloom, Lensing)"]
+    R --> S[Screen]
+    F --> T[Energy Worker]
+    T --> U[Energy Drift Display]
+`;
+
+const leapfrogDiagram = `
+flowchart LR
+    A[Start: x0, v0] --> B[Compute a0 from x0]
+    B --> C[v_half = v0 + a0 * dt / 2]
+    C --> D[x1 = x0 + v_half * dt]
+    D --> E[Compute a1 from x1]
+    E --> F[v1 = v_half + a1 * dt / 2]
+    F --> G[End: x1, v1]
+`;
 
 export const explanations = {
     advanced: `
@@ -59,7 +101,7 @@ export const explanations = {
     <div class="equation">${renderFormula(eq.energy)}</div>
     <p>The percentage change since the last reset is displayed as <span class="highlight">Energy Drift</span>. A well‑tuned leapfrog run with ε=10 and 2 substeps typically drifts less than 0.01% per thousand steps.</p>
     <h3>PARALLEL & GPU ACCELERATION</h3>
-    <p>The ${renderInline("O(N^2)")} force calculation is the bottleneck. On <strong>WebGPU‑capable browsers</strong> (Chrome, Edge, Safari) the calculation is offloaded to the GPU via a custom WGSL compute shader that processes thousands of work‑items simultaneously. The entire time step – acceleration, drift, and two half‑kicks – is encoded into a single command buffer, minimizing CPU‑GPU synchronization overhead. On unsupported browsers, the simulation falls back to a multi‑threaded CPU implementation using <span class="highlight">Web Workers</span> and <span class="highlight">SharedArrayBuffer</span>. Both paths produce identical, exact results – the GPU simply delivers a dramatic speed‑up, allowing smooth playback at higher particle counts (up to 20,000+).</p>
+    <p>The ${renderInline("O(N^2)")} force calculation is the bottleneck. On <strong>WebGPU‑capable browsers</strong> (Chrome, Edge, Safari) the entire integration – acceleration, half‑kick, drift – runs on the GPU via custom WGSL compute shaders. All substeps are encoded into a single command buffer, minimising CPU‑GPU synchronisation overhead. On unsupported browsers, the simulation falls back to a multi‑threaded CPU implementation using <span class="highlight">Web Workers</span> and <span class="highlight">SharedArrayBuffer</span>. Both paths produce identical, exact results – the GPU simply delivers a dramatic speed‑up, allowing smooth playback at higher particle counts (up to 20,000+).</p>
   `,
     intermediate: `
     <p>A multi‑threaded particle simulation designed for <strong>AP Physics 1</strong> and <strong>AP Calculus AB</strong>. The core concepts are presented without vector calculus notation, though the underlying engine uses full 3D vectors.</p>
@@ -145,11 +187,15 @@ export const explanations = {
 
     <h3>GPU ACCELERATION (WebGPU)</h3>
     <p><span class="tech-badge">WebGPU</span> <span class="tech-badge">WGSL</span> <span class="tech-badge">Compute Shaders</span></p>
-    <p>On supported browsers (Chrome, Edge, Safari), the ${renderInline("O(N^2)")} direct force calculation runs entirely on the GPU via a <strong>WebGPU compute pipeline</strong>. A custom WGSL shader processes thousands of threads in parallel – each thread computes the net force on a single particle. The particle data is stored in GPU storage buffers, and accelerations are written to a staging buffer and read back asynchronously. All leapfrog substeps are encoded into a single command buffer, avoiding repeated CPU‑GPU synchronization. The leapfrog integration itself remains on the CPU for simplicity.</p>
+    <p>On supported browsers (Chrome, Edge, Safari), the ${renderInline("O(N^2)")} direct force calculation <strong>and the entire leapfrog integration</strong> run on the GPU via custom WGSL compute shaders. All substeps are encoded into a single <code>GPUCommandBuffer</code> and submitted once per frame, eliminating redundant CPU‑GPU synchronisation. The final particle state is read back via a staging buffer, and a double‑buffered scheme prevents overlapping <code>mapAsync</code> calls.</p>
 
     <h3>CPU FALLBACK (Multi‑Threaded)</h3>
-    <p><span class="tech-badge">Web Workers</span> <span class="tech-badge">SharedArrayBuffer</span> <span class="tech-badge">Atomics</span></p>
+    <p><span class="tech-badge">Web Workers</span> <span class="tech-badge">SharedArrayBuffer</span></p>
     <p>If WebGPU is unavailable (e.g., Firefox without the flag), the simulation automatically falls back to the optimized multi‑threaded CPU engine. Particle data lives in a single <strong>SharedArrayBuffer</strong> shared with multiple Web Workers. Each worker computes forces for a contiguous chunk of particles. The two leapfrog phases are globally synchronised via message counting, preserving the integrator's symplectic property. Colour computations use pre‑computed lookup tables (LUTs) generated by <span class="tech-badge">chroma‑js</span> to avoid per‑frame chroma calls.</p>
+
+    <h3>ENERGY DRIFT MONITORING</h3>
+    <p><span class="tech-badge">Web Worker</span></p>
+    <p>Total mechanical energy is computed offline in a separate Web Worker so the main thread never stalls.</p>
 
     <h3>PERFORMANCE MONITORING</h3>
     <p>The simulation tracks:</p>
@@ -159,6 +205,12 @@ export const explanations = {
     </ul>
     <p>Particle count can be increased up to 20,000 to stress‑test the GPU/CPU and observe performance scaling.</p>
 
+    <h3>ARCHITECTURE DIAGRAM</h3>
+    ${mermaidDiagram(architectureDiagram)}
+
+    <h3>LEAPFROG INTEGRATION FLOW</h3>
+    ${mermaidDiagram(leapfrogDiagram)}
+
     <h3>DEPENDENCIES</h3>
     <ul>
       <li><span class="highlight">three</span> ^0.184.0</li>
@@ -166,6 +218,7 @@ export const explanations = {
       <li><span class="highlight">lil‑gui</span> ^0.21.0</li>
       <li><span class="highlight">katex</span> ^0.16.45</li>
       <li><span class="highlight">chroma‑js</span> ^3.2.0</li>
+      <li><span class="highlight">mermaid</span> ^11.14.0</li>
       <li><span class="highlight">typescript</span> ^6.0.3 (dev)</li>
       <li><span class="highlight">vite</span> ^8.0.10 (dev)</li>
       <li><span class="highlight">prettier</span> ^3.8.3 (dev)</li>
