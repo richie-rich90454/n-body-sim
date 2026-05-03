@@ -49,89 +49,47 @@ let accelArray: Float32Array;
 let physicsBusy = false;
 let resetPending = false;
 
-function computeTotalEnergy(data: Float32Array, G: number, softeningSq: number): number {
-    const count = data.length / STRIDE;
-    let kinetic = 0,
-        potential = 0;
-    for (let i = 0; i < count; i++) {
-        const i7 = i * STRIDE;
-        const vx = data[i7 + 3],
-            vy = data[i7 + 4],
-            vz = data[i7 + 5],
-            m = data[i7 + 6];
-        kinetic += 0.5 * m * (vx * vx + vy * vy + vz * vz);
-    }
-    for (let i = 0; i < count; i++) {
-        const i7 = i * STRIDE;
-        const px = data[i7],
-            py = data[i7 + 1],
-            pz = data[i7 + 2],
-            mi = data[i7 + 6];
-        for (let j = i + 1; j < count; j++) {
-            const j7 = j * STRIDE;
-            const dx = data[j7] - px,
-                dy = data[j7 + 1] - py,
-                dz = data[j7 + 2] - pz;
-            const distSq = dx * dx + dy * dy + dz * dz + softeningSq;
-            const mj = data[j7 + 6];
-            potential -= (G * mi * mj) / Math.sqrt(distSq);
+let energyWorker: Worker | null = null;
+let energyPending = false;
+let latestEnergy: number | null = null;
+
+function initEnergyWorker(buffer: SharedArrayBuffer) {
+    if (energyWorker) energyWorker.terminate();
+    energyWorker = new Worker(new URL("./simulation/energy.worker.ts", import.meta.url), {
+        type: "module",
+    });
+    energyWorker.postMessage({ type: "init", buffer });
+    energyWorker.postMessage({
+        type: "params",
+        G: config.gravitationalConstant,
+        softeningSq: config.softeningEpsilon * config.softeningEpsilon,
+    });
+    energyWorker.onmessage = (e) => {
+        const msg = e.data;
+        if (msg.type === "energy") {
+            latestEnergy = msg.energy;
+            energyPending = false;
         }
-    }
-    return kinetic + potential;
+    };
+}
+
+function requestEnergyCalculation() {
+    if (!energyWorker || energyPending) return;
+    energyPending = true;
+    energyWorker.postMessage({ type: "compute" });
 }
 
 function resetEnergyBaseline() {
-    const currentEnergy = computeTotalEnergy(
-        renderBuffer,
-        config.gravitationalConstant,
-        config.softeningEpsilon * config.softeningEpsilon,
-    );
-    initialEnergy = currentEnergy;
-    energyDrift = 0;
-    updateEnergyDisplay(0);
-    lastEnergyCheck = performance.now();
-}
-
-function computeNucleusAccel(data: Float32Array) {
-    const softSq = config.softeningEpsilon * config.softeningEpsilon;
-    const G = config.gravitationalConstant;
-    if (blackHoleActive) {
-        const j7 = blackHoleIndex * STRIDE;
-        const dx = data[j7];
-        const dy = data[j7 + 1];
-        const dz = data[j7 + 2];
-        const mj = data[j7 + 6];
-        const distSq = dx * dx + dy * dy + dz * dz + softSq;
-        const invDist = 1 / Math.sqrt(distSq);
-        const factor = G * mj * invDist * invDist * invDist;
-        accelArray[0] = dx * factor;
-        accelArray[1] = dy * factor;
-        accelArray[2] = dz * factor;
-    } else {
-        accelArray[0] = 0;
-        accelArray[1] = 0;
-        accelArray[2] = 0;
-    }
-}
-
-async function destroyWebGPU() {
-    if (webgpuForce) {
-        const { device } = webgpuForce;
-        webgpuForce = null;
-        device.destroy();
-    }
+    if (!energyWorker) return;
+    energyWorker.postMessage({
+        type: "params",
+        G: config.gravitationalConstant,
+        softeningSq: config.softeningEpsilon * config.softeningEpsilon,
+    });
+    requestEnergyCalculation();
 }
 
 export async function createSimulation(particleCount: number) {
-    while (physicsBusy) {
-        await new Promise((resolve) => setTimeout(resolve, 1));
-    }
-    await destroyWebGPU();
-    if (simManager) {
-        simManager.terminate();
-        simManager = null;
-    }
-
     const initialData = initializeGalaxy(particleCount, GALAXY_RADIUS);
     const workerCount = navigator.hardwareConcurrency || 4;
 
@@ -145,8 +103,13 @@ export async function createSimulation(particleCount: number) {
         renderBuffer = new Float32Array(initialData);
         physicsBuffer = new Float32Array(initialData.length);
         accelArray = new Float32Array((physicsBuffer.length / STRIDE) * 3);
+        if (simManager) {
+            simManager.terminate();
+            simManager = null;
+        }
     } else {
         useGPU = false;
+        if (simManager) simManager.terminate();
         simManager = new SimulationManager(initialData, workerCount);
         renderBuffer = simManager.particleData;
         physicsBuffer = new Float32Array(initialData.length);
@@ -173,6 +136,10 @@ export async function createSimulation(particleCount: number) {
     renderer.scene.add(particleSystem.haloPoints);
     if (particleSystem.blackHoleSprite) renderer.scene.add(particleSystem.blackHoleSprite);
     if (particleSystem.backgroundStars) renderer.scene.add(particleSystem.backgroundStars);
+    const sharedBuf = (
+        useGPU ? initialData.buffer : simManager!.particleData.buffer
+    ) as SharedArrayBuffer;
+    initEnergyWorker(sharedBuf);
 
     blackHoleIndex = 0;
     blackHoleActive = false;
@@ -234,16 +201,25 @@ export function animationLoop() {
         fpsTimer = now;
         updateFPSDisplay(fps.toString(), deltaTime.toFixed(2));
     }
-    if (now - lastEnergyCheck > 500) {
-        lastEnergyCheck = now;
-        const currentEnergy = computeTotalEnergy(
-            renderBuffer,
-            config.gravitationalConstant,
-            config.softeningEpsilon * config.softeningEpsilon,
-        );
-        energyDrift = Math.abs((currentEnergy - initialEnergy) / initialEnergy) * 100;
+
+    if (latestEnergy !== null) {
+        const currentEnergy = latestEnergy;
+        latestEnergy = null;
+        if (initialEnergy === 0) {
+            initialEnergy = currentEnergy;
+            energyDrift = 0;
+            updateEnergyDisplay(0);
+        } else {
+            energyDrift = Math.abs((currentEnergy - initialEnergy) / initialEnergy) * 100;
+        }
         updateEnergyDisplay(energyDrift);
     }
+
+    if (now - lastEnergyCheck > 500) {
+        lastEnergyCheck = now;
+        requestEnergyCalculation();
+    }
+
     const cameraPos = renderer.camera.position;
     const distToCenter = Math.sqrt(
         cameraPos.x * cameraPos.x + cameraPos.y * cameraPos.y + cameraPos.z * cameraPos.z,
@@ -261,7 +237,7 @@ export function animationLoop() {
 
     renderer.controls.autoRotate = config.autoRotate && !config.isPaused;
 
-    if (!config.isPaused && useGPU && !physicsBusy && !resetPending) {
+    if (!config.isPaused && useGPU && !physicsBusy) {
         startPhysicsStep();
     } else if (!config.isPaused && !useGPU && simManager) {
         simManager.step({

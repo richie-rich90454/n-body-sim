@@ -67,3 +67,5 @@ self.onmessage = (e: MessageEvent) => {
         self.postMessage({ accel, startIdx }, { transfer: [accel.buffer] });
     }
 };
+
+export {};
