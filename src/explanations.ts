@@ -1,12 +1,26 @@
+// src/explanations.ts
 import katex from "katex";
 import "katex/dist/katex.min.css";
-import mermaid from "mermaid";
 
-mermaid.initialize({
-    startOnLoad: false,
-    theme: "dark",
-    fontFamily: '"Noto Sans", sans-serif',
-});
+let mermaidModule: typeof import("mermaid") | null = null;
+
+async function getMermaid(): Promise<typeof import("mermaid")> {
+    if (!mermaidModule) {
+        mermaidModule = await import("mermaid");
+        mermaidModule.default.initialize({
+            startOnLoad: false,
+            theme: "dark",
+            fontFamily: '"Noto Sans", sans-serif',
+        });
+    }
+    return mermaidModule;
+}
+
+export async function runMermaidDiagrams(nodes: HTMLElement[]): Promise<void> {
+    if (nodes.length === 0) return;
+    const mermaid = await getMermaid();
+    await mermaid.default.run({ nodes });
+}
 
 export function renderFormula(tex: string, displayMode: boolean = true): string {
     try {

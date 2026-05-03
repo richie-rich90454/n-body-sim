@@ -8,20 +8,22 @@ export default defineConfig({
         chunkSizeWarningLimit: 1000,
         rollupOptions: {
             output: {
-                codeSplitting: true,
                 manualChunks: (id) => {
-                    if (id.includes("node_modules/three")) {
-                        return "three";
-                    }
-                    if (id.includes("node_modules/postprocessing")) {
-                        return "postprocessing";
-                    }
-                    if (id.includes("node_modules/katex")) {
-                        return "katex";
-                    }
-                    if (id.includes("node_modules")) {
-                        return "vendor";
-                    }
+                    if (id.includes("node_modules/three")) return "three";
+                    if (id.includes("node_modules/postprocessing")) return "postprocessing";
+                    if (id.includes("node_modules/katex")) return "katex";
+                    if (id.includes("node_modules/mermaid")) return "mermaid";
+                    if (id.includes("node_modules/lil-gui")) return "lil-gui";
+                    if (id.includes("node_modules/chroma-js")) return "chroma-js";
+                    if (id.includes("node_modules")) return "vendor";
+                },
+            },
+            treeshake: {
+                moduleSideEffects: (id) => {
+                    if (id.includes("node_modules/chroma-js")) return false;
+                    if (id.includes("node_modules/katex")) return false;
+                    if (id.includes("node_modules/lil-gui")) return false;
+                    return true;
                 },
             },
         },

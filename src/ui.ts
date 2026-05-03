@@ -1,7 +1,6 @@
-import mermaid from "mermaid";
+// src/ui.ts
 import { explanations } from "./explanations";
-
-mermaid.initialize({ startOnLoad: false, theme: "dark" });
+import { runMermaidDiagrams } from "./explanations";
 
 export function injectExplanations() {
     const advancedEl = document.getElementById("explanation-advanced");
@@ -19,7 +18,7 @@ export function injectExplanations() {
     if (activePane) {
         const mermaidElements = activePane.querySelectorAll("pre.mermaid");
         if (mermaidElements.length > 0) {
-            mermaid.run({ nodes: Array.from(mermaidElements) as HTMLElement[] });
+            runMermaidDiagrams(Array.from(mermaidElements) as HTMLElement[]);
         }
     }
 }
@@ -41,7 +40,7 @@ export function setupModalAndTabs() {
                 targetPane.classList.add("active");
                 const mermaidElements = targetPane.querySelectorAll("pre.mermaid");
                 if (mermaidElements.length > 0) {
-                    mermaid.run({ nodes: Array.from(mermaidElements) as HTMLElement[] });
+                    runMermaidDiagrams(Array.from(mermaidElements) as HTMLElement[]);
                 }
             }
         });
