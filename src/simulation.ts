@@ -53,9 +53,7 @@ let energyWorker: Worker | null = null;
 let energyPending = false;
 let latestEnergy: number | null = null;
 
-let smoothedLensingStrength = 0;
-let smoothedLensingPosX = 0.5;
-let smoothedLensingPosY = 0.5;
+let currentLensStrength = 0;
 
 function sanitizeBuffer(data: Float32Array) {
     for (let i = 0; i < data.length; i++) {
@@ -290,41 +288,48 @@ export function animationLoop() {
     postFX.setBloomIntensity(config.bloomIntensity * Math.max(0.5, bloomFactor));
 
     const bhPos = particleSystem.getBlackHoleWorldPos();
+    let targetStrength = 0;
+    let safeScreenPos = new Vector2(0.5, 0.5);
+
     if (bhPos) {
         const camera = renderer.camera;
-        const m = new Matrix4().multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse);
+        const m = new Matrix4().multiplyMatrices(
+            camera.projectionMatrix,
+            camera.matrixWorldInverse,
+        );
         const frustum = new Frustum().setFromProjectionMatrix(m);
         const inFrustum = frustum.containsPoint(bhPos);
 
         if (inFrustum) {
             const screenPos = bhPos.clone().project(camera);
-            const sx = (screenPos.x + 1) / 2;
-            const sy = (-screenPos.y + 1) / 2;
-            const targetStrength = config.blackHoleMass * 0.000008;
-            const lerp = 0.15;
-            smoothedLensingStrength += (targetStrength - smoothedLensingStrength) * lerp;
-            smoothedLensingPosX += (sx - smoothedLensingPosX) * lerp;
-            smoothedLensingPosY += (sy - smoothedLensingPosY) * lerp;
+            if (
+                screenPos.z > 0 &&
+                screenPos.z < 1 &&
+                screenPos.x > -1 &&
+                screenPos.x < 1 &&
+                screenPos.y > -1 &&
+                screenPos.y < 1
+            ) {
+                const sx = (screenPos.x + 1) / 2;
+                const sy = (-screenPos.y + 1) / 2;
+                safeScreenPos = new Vector2(sx, sy);
+                const edgeMargin = 0.15;
+                const edgeDistX = Math.min(sx, 1.0 - sx);
+                const edgeDistY = Math.min(sy, 1.0 - sy);
+                const edgeDist = Math.min(edgeDistX, edgeDistY);
+                const fade = Math.min(1.0, edgeDist / edgeMargin);
 
-            if (smoothedLensingStrength > 0.0001) {
-                postFX.setLensingEnabled(true);
-                postFX.setLensingParams(
-                    new Vector2(smoothedLensingPosX, smoothedLensingPosY),
-                    smoothedLensingStrength / 0.000008,
-                );
-            } else {
-                postFX.setLensingEnabled(false);
+                targetStrength = config.blackHoleMass * 0.000008 * fade;
             }
-        } else {
-            postFX.setLensingEnabled(false);
-            smoothedLensingStrength *= 0.5;
-            if (smoothedLensingStrength < 0.00001) smoothedLensingStrength = 0;
         }
-    } else {
-        postFX.setLensingEnabled(false);
-        smoothedLensingStrength = 0;
     }
 
+    const lerp = 0.12;
+    currentLensStrength += (targetStrength - currentLensStrength) * lerp;
+    if (currentLensStrength < 0.00001) currentLensStrength = 0;
+
+    postFX.setLensingStrength(currentLensStrength);
+    postFX.setLensingScreenPos(safeScreenPos);
     renderer.controls.autoRotate = config.autoRotate && !config.isPaused;
 
     if (!config.isPaused && useGPU && !physicsBusy && !resetPending) {

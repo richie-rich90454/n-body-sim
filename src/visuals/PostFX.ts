@@ -19,23 +19,26 @@ const lensingFragmentShader = `
   uniform float uStrength;
   uniform float uAspect;
   void main() {
-    vec2 uv = vUv;
     if (uStrength <= 0.0) {
-      gl_FragColor = texture2D(tDiffuse, uv);
+      gl_FragColor = texture2D(tDiffuse, vUv);
       return;
     }
-    vec2 delta = uv - uBlackHoleScreenPos;
+    float edgeDistX = min(uBlackHoleScreenPos.x, 1.0 - uBlackHoleScreenPos.x);
+    float edgeDistY = min(uBlackHoleScreenPos.y, 1.0 - uBlackHoleScreenPos.y);
+    float edgeDist = min(edgeDistX, edgeDistY);
+    if (edgeDist < 0.12) {
+      gl_FragColor = texture2D(tDiffuse, vUv);
+      return;
+    }
+
+    vec2 delta = vUv - uBlackHoleScreenPos;
     delta.x *= uAspect;
-    float dist = length(delta);
-    if (dist < 0.001) {
-      gl_FragColor = texture2D(tDiffuse, uv);
-      return;
-    }
-    float deflection = uStrength / (dist * dist + 0.0001);
-    deflection = min(deflection, 0.15);
+    float dist = length(delta) + 0.001;
+    float deflection = uStrength / (dist * dist);
+    deflection = min(deflection, 0.05);
     vec2 offset = delta * deflection;
     offset.x /= uAspect;
-    vec2 sampleUV = uv - offset;
+    vec2 sampleUV = vUv - offset;
     sampleUV = clamp(sampleUV, 0.0, 1.0);
     gl_FragColor = texture2D(tDiffuse, sampleUV);
   }
@@ -83,15 +86,12 @@ export class PostFX {
         this.bloomPass.strength = value;
     }
 
-    public setLensingParams(screenPos: Vector2, mass: number) {
-        this.lensingUniforms.uBlackHoleScreenPos.value.copy(screenPos);
-        const scale = 0.000008;
-        this.lensingUniforms.uStrength.value = mass * scale;
-        this.lensingUniforms.uAspect.value = window.innerWidth / window.innerHeight;
+    public setLensingStrength(strength: number) {
+        this.lensingUniforms.uStrength.value = strength;
     }
 
-    public setLensingEnabled(enabled: boolean) {
-        this.lensingPass.enabled = enabled;
+    public setLensingScreenPos(screenPos: Vector2) {
+        this.lensingUniforms.uBlackHoleScreenPos.value.copy(screenPos);
     }
 
     public setSize(width: number, height: number) {
