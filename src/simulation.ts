@@ -1,10 +1,6 @@
 import { initializeGalaxy, STRIDE } from "./math/PhysicsEngine";
 import { SimulationManager } from "./simulation/SimulationManager";
-import {
-    createWebGPUForce,
-    computeAccelerationsWebGPU,
-    WebGPUForce,
-} from "./simulation/WebGPUForce";
+import { createWebGPUForce, computeFullStep, WebGPUForce } from "./simulation/WebGPUForce";
 import { applyFirstHalfKickAndDrift, applySecondHalfKick } from "./simulation/leapfrog";
 import { SceneRenderer } from "./visuals/SceneRenderer";
 import { ParticleSystem } from "./visuals/ParticleSystem";
@@ -191,7 +187,6 @@ let fpsTimer = performance.now();
 let rotCurveCounter = 0;
 
 function startPhysicsStep() {
-    if (resetPending) return;
     const effectiveDt = config.timeStep * config.timeScale;
     const subSteps = config.integrationSteps;
     const subDt = effectiveDt / subSteps;
@@ -204,32 +199,18 @@ function startPhysicsStep() {
 
     (async () => {
         try {
-            for (let s = 0; s < subSteps; s++) {
-                await computeAccelerationsWebGPU(
-                    webgpuForce!,
-                    physicsBuffer,
-                    G,
-                    softSq,
-                    accelArray,
-                );
-                computeNucleusAccel(physicsBuffer);
-                applyFirstHalfKickAndDrift(physicsBuffer, accelArray, count, subDt);
-
-                await computeAccelerationsWebGPU(
-                    webgpuForce!,
-                    physicsBuffer,
-                    G,
-                    softSq,
-                    accelArray,
-                );
-                computeNucleusAccel(physicsBuffer);
-                applySecondHalfKick(physicsBuffer, accelArray, count, subDt);
-            }
-
+            await computeFullStep(
+                webgpuForce!,
+                physicsBuffer,
+                G,
+                softSq,
+                subDt,
+                subSteps,
+                physicsBuffer,
+            );
             const tmp = renderBuffer;
             renderBuffer = physicsBuffer;
             physicsBuffer = tmp;
-
             particleSystem.update(renderBuffer, config.particleSize, blackHoleIndex);
             physicsBusy = false;
         } catch (e) {
