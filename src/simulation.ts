@@ -288,18 +288,19 @@ export function animationLoop() {
     const bhPos = particleSystem.getBlackHoleWorldPos();
     if (bhPos) {
         const screenPos = bhPos.clone().project(renderer.camera);
-        if (
-            screenPos.z < 1.0 &&
-            screenPos.x >= -1.0 &&
-            screenPos.x <= 1.0 &&
-            screenPos.y >= -1.0 &&
-            screenPos.y <= 1.0
-        ) {
-            const mass = config.blackHoleMass;
-            postFX.setLensingParams(
-                new Vector2((screenPos.x + 1) / 2, (-screenPos.y + 1) / 2),
-                mass,
-            );
+        if (screenPos.z < 1.0) {
+            const sx = (screenPos.x + 1) / 2;
+            const sy = (-screenPos.y + 1) / 2;
+
+            const margin = 0.15;
+            const edgeDistX = Math.min(sx, 1.0 - sx);
+            const edgeDistY = Math.min(sy, 1.0 - sy);
+            const edgeDist = Math.min(edgeDistX, edgeDistY);
+
+            const fadeFactor = Math.min(1.0, edgeDist / margin);
+
+            const mass = config.blackHoleMass * fadeFactor;
+            postFX.setLensingParams(new Vector2(sx, sy), mass);
         } else {
             postFX.setLensingParams(new Vector2(0.5, 0.5), 0);
         }
