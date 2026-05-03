@@ -9,12 +9,12 @@ A high‑performance N‑body particle simulation implemented in TypeScript, emp
 - [Architecture Overview](#architecture-overview)
 - [Features](#features)
 - [Physics and Numerical Methods](#physics-and-numerical-methods)
-  - [Gravitational Force](#gravitational-force)
-  - [Integration Scheme](#integration-scheme)
-  - [Softening](#softening)
+    - [Gravitational Force](#gravitational-force)
+    - [Integration Scheme](#integration-scheme)
+    - [Softening](#softening)
 - [Parallel Execution](#parallel-execution)
-  - [WebGPU Path](#webgpu-path)
-  - [CPU Fallback](#cpu-fallback)
+    - [WebGPU Path](#webgpu-path)
+    - [CPU Fallback](#cpu-fallback)
 - [Control Parameters](#control-parameters)
 - [Energy Drift Monitoring](#energy-drift-monitoring)
 - [Project Structure](#project-structure)
@@ -217,7 +217,7 @@ Both paths produce **bit‑identical accelerations** for the same input configur
 ## Control Parameters
 
 | Parameter | Range | Default | Description |
-| :--- | :--- | :--- | :--- |
+| :-- | :-- | :-- | :-- |
 | **G Constant** | 1.0 – 4.0 | 2.0 | Scales gravitational interaction strength. |
 | **Softening $\varepsilon$** | 1.0 – 50.0 | 10.0 | Smoothing length added to distance in the denominator. |
 | **Singular Mass** | 5 000 – 500 000 | 150 000 | Mass assigned to the injected black hole. |
@@ -291,19 +291,19 @@ Open the provided URL in a browser. Use mouse/trackpad to rotate, zoom, and pan.
 
 ## Technology Stack
 
-| Category               | Technology                                                     |
-| ---------------------- | -------------------------------------------------------------- |
-| Language               | TypeScript 6.0                                                 |
-| Build Tool             | Vite 8                                                         |
-| GPU Acceleration       | WebGPU (WGSL compute shaders, `dispatchWorkgroups`)            |
-| CPU Parallelism        | Web Workers, `SharedArrayBuffer`, `Atomics` (fallback)         |
-| 3D Rendering           | Three.js r184, custom GLSL point sprites                       |
-| Post‑Processing        | `postprocessing` (UnrealBloomPass, ShaderPass)                 |
-| Color Interpolation    | chroma‑js 3.2                                                  |
-| UI Controls            | lil‑gui 0.21                                                   |
-| Mathematical Notation  | KaTeX 0.16.45                                                  |
-| Code Formatting        | Prettier 3.8                                                   |
-| Dev Dependencies       | `@webgpu/types`, `@types/three`, `@types/chroma‑js`, `@types/katex` |
+| Category              | Technology                                                          |
+| --------------------- | ------------------------------------------------------------------- |
+| Language              | TypeScript 6.0                                                      |
+| Build Tool            | Vite 8                                                              |
+| GPU Acceleration      | WebGPU (WGSL compute shaders, `dispatchWorkgroups`)                 |
+| CPU Parallelism       | Web Workers, `SharedArrayBuffer`, `Atomics` (fallback)              |
+| 3D Rendering          | Three.js r184, custom GLSL point sprites                            |
+| Post‑Processing       | `postprocessing` (UnrealBloomPass, ShaderPass)                      |
+| Color Interpolation   | chroma‑js 3.2                                                       |
+| UI Controls           | lil‑gui 0.21                                                        |
+| Mathematical Notation | KaTeX 0.16.45                                                       |
+| Code Formatting       | Prettier 3.8                                                        |
+| Dev Dependencies      | `@webgpu/types`, `@types/three`, `@types/chroma‑js`, `@types/katex` |
 
 ---
 
