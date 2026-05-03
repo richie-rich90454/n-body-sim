@@ -1,54 +1,11 @@
 import { EffectComposer } from "three/examples/jsm/postprocessing/EffectComposer.js";
 import { RenderPass } from "three/examples/jsm/postprocessing/RenderPass.js";
 import { UnrealBloomPass } from "three/examples/jsm/postprocessing/UnrealBloomPass.js";
-import { ShaderPass } from "three/examples/jsm/postprocessing/ShaderPass.js";
-import { WebGLRenderer, Scene, PerspectiveCamera, Vector2, ShaderMaterial } from "three";
-
-const lensingVertexShader = `
-  varying vec2 vUv;
-  void main() {
-    vUv = uv;
-    gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-  }
-`;
-
-const lensingFragmentShader = `
-  varying vec2 vUv;
-  uniform sampler2D tDiffuse;
-  uniform vec2 uBlackHoleScreenPos;
-  uniform float uStrength;
-  uniform float uAspect;
-  void main() {
-    if (uStrength <= 0.0) {
-      gl_FragColor = texture2D(tDiffuse, vUv);
-      return;
-    }
-    float edgeDistX = min(uBlackHoleScreenPos.x, 1.0 - uBlackHoleScreenPos.x);
-    float edgeDistY = min(uBlackHoleScreenPos.y, 1.0 - uBlackHoleScreenPos.y);
-    float edgeDist = min(edgeDistX, edgeDistY);
-    if (edgeDist < 0.12) {
-      gl_FragColor = texture2D(tDiffuse, vUv);
-      return;
-    }
-
-    vec2 delta = vUv - uBlackHoleScreenPos;
-    delta.x *= uAspect;
-    float dist = length(delta) + 0.001;
-    float deflection = uStrength / (dist * dist);
-    deflection = min(deflection, 0.05);
-    vec2 offset = delta * deflection;
-    offset.x /= uAspect;
-    vec2 sampleUV = vUv - offset;
-    sampleUV = clamp(sampleUV, 0.0, 1.0);
-    gl_FragColor = texture2D(tDiffuse, sampleUV);
-  }
-`;
+import { WebGLRenderer, Scene, PerspectiveCamera, Vector2 } from "three";
 
 export class PostFX {
     public composer: EffectComposer;
     public bloomPass: UnrealBloomPass;
-    private lensingPass: ShaderPass;
-    private lensingUniforms: any;
 
     constructor(renderer: WebGLRenderer, scene: Scene, camera: PerspectiveCamera) {
         this.composer = new EffectComposer(renderer);
@@ -65,38 +22,14 @@ export class PostFX {
         this.bloomPass.strength = 1.5;
         this.bloomPass.radius = 0.8;
         this.composer.addPass(this.bloomPass);
-
-        this.lensingUniforms = {
-            tDiffuse: { value: null },
-            uBlackHoleScreenPos: { value: new Vector2(0.5, 0.5) },
-            uStrength: { value: 0.0 },
-            uAspect: { value: window.innerWidth / window.innerHeight },
-        };
-        const lensingMat = new ShaderMaterial({
-            uniforms: this.lensingUniforms,
-            vertexShader: lensingVertexShader,
-            fragmentShader: lensingFragmentShader,
-        });
-        this.lensingPass = new ShaderPass(lensingMat);
-        this.lensingPass.renderToScreen = true;
-        this.composer.addPass(this.lensingPass);
     }
 
     public setBloomIntensity(value: number) {
         this.bloomPass.strength = value;
     }
 
-    public setLensingStrength(strength: number) {
-        this.lensingUniforms.uStrength.value = strength;
-    }
-
-    public setLensingScreenPos(screenPos: Vector2) {
-        this.lensingUniforms.uBlackHoleScreenPos.value.copy(screenPos);
-    }
-
     public setSize(width: number, height: number) {
         this.composer.setSize(width, height);
-        this.lensingUniforms.uAspect.value = width / height;
     }
 
     public render() {

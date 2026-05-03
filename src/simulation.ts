@@ -7,7 +7,6 @@ import { PostFX } from "./visuals/PostFX";
 import { UIController, SimConfig } from "./visuals/UIController";
 import { updateFPSDisplay, updateEnergyDisplay } from "./ui";
 import { RotCurve } from "./visuals/RotCurve";
-import { Vector2, Frustum, Matrix4 } from "three";
 
 const GALAXY_RADIUS = 400;
 
@@ -52,8 +51,6 @@ let pendingInjection: { index: number; mass: number } | null = null;
 let energyWorker: Worker | null = null;
 let energyPending = false;
 let latestEnergy: number | null = null;
-
-let currentLensStrength = 0;
 
 function sanitizeBuffer(data: Float32Array) {
     for (let i = 0; i < data.length; i++) {
@@ -287,49 +284,6 @@ export function animationLoop() {
     const bloomFactor = 1.0 / (distToCenter / 300 + 1.0) + 0.3;
     postFX.setBloomIntensity(config.bloomIntensity * Math.max(0.5, bloomFactor));
 
-    const bhPos = particleSystem.getBlackHoleWorldPos();
-    let targetStrength = 0;
-    let safeScreenPos = new Vector2(0.5, 0.5);
-
-    if (bhPos) {
-        const camera = renderer.camera;
-        const m = new Matrix4().multiplyMatrices(
-            camera.projectionMatrix,
-            camera.matrixWorldInverse,
-        );
-        const frustum = new Frustum().setFromProjectionMatrix(m);
-        const inFrustum = frustum.containsPoint(bhPos);
-
-        if (inFrustum) {
-            const screenPos = bhPos.clone().project(camera);
-            if (
-                screenPos.z > 0 &&
-                screenPos.z < 1 &&
-                screenPos.x > -1 &&
-                screenPos.x < 1 &&
-                screenPos.y > -1 &&
-                screenPos.y < 1
-            ) {
-                const sx = (screenPos.x + 1) / 2;
-                const sy = (-screenPos.y + 1) / 2;
-                safeScreenPos = new Vector2(sx, sy);
-                const edgeMargin = 0.15;
-                const edgeDistX = Math.min(sx, 1.0 - sx);
-                const edgeDistY = Math.min(sy, 1.0 - sy);
-                const edgeDist = Math.min(edgeDistX, edgeDistY);
-                const fade = Math.min(1.0, edgeDist / edgeMargin);
-
-                targetStrength = config.blackHoleMass * 0.000008 * fade;
-            }
-        }
-    }
-
-    const lerp = 0.12;
-    currentLensStrength += (targetStrength - currentLensStrength) * lerp;
-    if (currentLensStrength < 0.00001) currentLensStrength = 0;
-
-    postFX.setLensingStrength(currentLensStrength);
-    postFX.setLensingScreenPos(safeScreenPos);
     renderer.controls.autoRotate = config.autoRotate && !config.isPaused;
 
     if (!config.isPaused && useGPU && !physicsBusy && !resetPending) {
