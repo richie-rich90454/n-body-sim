@@ -34,34 +34,34 @@ flowchart TD
     A --> C[Info Modal]
     C --> D[KaTeX Explanations]
     B --> E[SimConfig]
-    E --> F[animationLoop / stepOnce]
+    E --> F[animationLoop]
     F --> G{WebGPU Available?}
     G -->|Yes| H[WebGPUForce]
     G -->|No| I[SimulationManager]
     I --> J[Web Workers]
     J --> K[SharedArrayBuffer]
-    H --> L[WGSL Compute Shader]
+    H --> L[WGSL Compute Shaders]
     L --> M[GPU Buffers]
     M --> N[Staging Readback]
-    N --> O[leapfrog.ts]
-    J --> O
-    O --> P[ParticleSystem]
+    N --> P[ParticleSystem]
+    J --> O["leapfrog.ts (CPU)"]
+    O --> P
     P --> Q[Three.js Renderer]
-    Q --> R[PostFX]
+    Q --> R["PostFX (Bloom, Lensing)"]
     R --> S[Screen]
     F --> T[Energy Worker]
     T --> U[Energy Drift Display]
 ```
 
-The central loop (`animationLoop` in `simulation.ts`) dispatches physics steps either to the WebGPU pipeline or the CPU worker pool. The leapfrog integration is performed on the CPU in both paths, using the same shared functions from `leapfrog.ts`. Particle colour and sprite updates occur after each completed step, and the `PostFX` composer applies bloom and lensing before the final frame is presented.
+In the **GPU path** (left branch), the entire integration — force evaluation, half‑kick, drift, second half‑kick — runs on the GPU via custom WGSL compute shaders. The CPU only uploads the initial state and reads back the final particle array each frame. In the **CPU fallback** (right branch), Web Workers compute forces and the main thread applies the leapfrog updates using shared functions from `leapfrog.ts`. Particle colour updates and post‑processing are identical for both paths.
 
 ---
 
 ## Features
 
 - **Exact $\mathcal{O}(N^2)$ direct gravitational force summation** – no tree‑code approximations, ensuring exact force computation for all $N$ bodies.
-- **WebGPU acceleration** – a custom WGSL compute shader processes the entire $\mathcal{O}(N^2)$ force loop on the GPU (supported in Chrome, Edge, Safari). All leapfrog substeps are encoded into a single command buffer to minimise CPU‑GPU synchronisation overhead.
-- **CPU fallback** – if WebGPU is unavailable, the simulation automatically uses a pool of Web Workers, each reading the same `SharedArrayBuffer` without copying.
+- **WebGPU acceleration** – a custom WGSL compute shader performs the entire force evaluation and leapfrog integration on the GPU (supported in Chrome, Edge, Safari). All substeps are encoded into a single command buffer, minimising CPU‑GPU synchronisation.
+- **CPU fallback** – if WebGPU is unavailable, the simulation uses a pool of Web Workers, each reading the same `SharedArrayBuffer` without copying. A two‑phase synchronisation ensures bit‑identical results.
 - **Symplectic leapfrog (Störmer‑Verlet) integration** – a second‑order method that preserves the symplectic form of the Hamiltonian, yielding excellent long‑term energy conservation.
 - **Real‑time 3D visualisation** – powered by Three.js with custom GLSL point sprites (diffraction spikes), `UnrealBloomPass` post‑processing, and a procedurally generated black‑hole accretion disk.
 - **Gravitational lensing** – a screen‑space post‑processing shader distorts the background near the black hole, with deflection strength proportional to the black‑hole mass.
@@ -136,21 +136,20 @@ sequenceDiagram
     participant Buf as Buffers (stateA, stateB, accel, staging)
     Main->>Buf: writeBuffer(stateA, initial data)
     loop for each substep
-        Main->>GPU: Command buffer (accel from stateA, leapfrog1, accel from stateB, leapfrog2)
+        Main->>GPU: Command buffer (accel from stateA, leapfrog1 (half‑kick+drift), accel from stateB, leapfrog2 (2nd half‑kick))
         GPU->>Buf: executes compute passes, writes stateA
     end
     Main->>GPU: copyBufferToBuffer(stateA → staging)
     GPU-->>Main: staging.mapAsync()
-    Main->>Main: accelArray.set(mapped)
-    Main->>Main: swap renderBuffer ↔ physicsBuffer
+    Main->>Main: read final state, swap render/physics buffers
     Main->>Main: ParticleSystem.update(renderBuffer)
 ```
 
 - One thread per particle is launched via `dispatchWorkgroups`.
 - The **acceleration shader** uses a uniform buffer containing $G$, $\varepsilon^2$, and the black‑hole index (for selective nucleus interaction). It reads all particle data from a storage buffer and writes accelerations to a second storage buffer.
-- Two **leapfrog shaders** perform the half‑kick + drift and the second half‑kick, respectively, reading from one state buffer and writing to another.
-- All passes for a full time step are encoded into a single `GPUCommandEncoder`, submitted once per frame, eliminating redundant `mapAsync` waits.
-- The final particle state is copied to a **staging buffer** and read back asynchronously. A double‑buffered staging scheme prevents overlapping map operations.
+- Two **leapfrog shaders** perform the half‑kick + drift and the second half‑kick, respectively, reading from one state buffer and writing to another. No CPU involvement is required during the substeps.
+- All passes for a full time step are encoded into a single `GPUCommandEncoder`, submitted once per frame, avoiding repeated `mapAsync` waits.
+- The final particle state is copied to a **staging buffer** and read back asynchronously.
 
 ### CPU Fallback
 
@@ -166,7 +165,6 @@ sequenceDiagram
 
     Main->>SAB: allocate & write initial particle data (x,v,m)
     loop for each substep
-        Main->>SAB: read current positions
         Main->>W1: postMessage({startIdx, endIdx, G, ε², blackHoleIdx})
         Main->>W2: postMessage({startIdx, endIdx, G, ε², blackHoleIdx})
         Main->>Wn: postMessage({startIdx, endIdx, G, ε², blackHoleIdx})
@@ -182,26 +180,23 @@ sequenceDiagram
         deactivate W1
         deactivate W2
         deactivate Wn
-        Main->>SAB: apply first half‑kick & drift (own accelerator array)
-        Main->>SAB: write new positions & velocities
-        Main->>SAB: read new positions for second force eval
+        Main->>SAB: apply first half‑kick & drift (CPU, using leapfrog.ts)
         Main->>W1: postMessage({startIdx, endIdx, G, ε², blackHoleIdx})
         Main->>W2: postMessage({startIdx, endIdx, G, ε², blackHoleIdx})
         Main->>Wn: postMessage({startIdx, endIdx, G, ε², blackHoleIdx})
         activate W1
         activate W2
         activate Wn
-        W1->>SAB: read updated particle data (read-only)
-        W2->>SAB: read updated particle data (read-only)
-        Wn->>SAB: read updated particle data (read-only)
+        W1->>SAB: read updated particle data
+        W2->>SAB: read updated particle data
+        Wn->>SAB: read updated particle data
         W1-->>Main: postMessage(accel slice) [transferable]
         W2-->>Main: postMessage(accel slice) [transferable]
         Wn-->>Main: postMessage(accel slice) [transferable]
         deactivate W1
         deactivate W2
         deactivate Wn
-        Main->>SAB: apply second half‑kick (own accelerator array)
-        Main->>SAB: write final velocities
+        Main->>SAB: apply second half‑kick (CPU)
     end
     Main->>Main: ParticleSystem.update()
 ```
@@ -210,7 +205,7 @@ sequenceDiagram
 - Workers receive only the index range they are responsible for; forces are computed locally and returned via transferable objects.
 - The two leapfrog phases are **globally synchronized** through message counting, ensuring that all workers use the same coordinate snapshot for each force evaluation.
 
-Both paths produce **bit‑identical accelerations** for the same input configuration; the GPU path simply computes them in parallel.
+Both paths produce **bit‑identical accelerations** for the same input configuration; the GPU path simply computes them in parallel and also performs the leapfrog on‑GPU, reducing CPU overhead even further.
 
 ---
 
@@ -254,7 +249,7 @@ src/
 │   ├── SimulationManager.ts        # CPU worker pool manager, leapfrog synchronisation
 │   ├── physics.worker.ts           # Direct O(N²) force computation (CPU)
 │   ├── WebGPUForce.ts              # WebGPU device, pipelines, shaders, readback
-│   ├── leapfrog.ts                 # Shared kick‑drift‑kick functions
+│   ├── leapfrog.ts                 # Shared kick‑drift‑kick functions (CPU fallback only)
 │   └── energy.worker.ts            # Asynchronous total energy calculation
 ├── visuals/
 │   ├── SceneRenderer.ts            # Three.js scene, camera, OrbitControls
@@ -274,11 +269,11 @@ src/
 
 ## Installation and Usage
 
-**Requirements:** Node.js ≥ 22, a WebGPU‑enabled browser (Chrome, Edge, Safari) for GPU acceleration. Firefox users will automatically use the multi‑threaded CPU engine.
+**Requirements:** Node.js ≥ 18, a WebGPU‑enabled browser (Chrome, Edge, Safari) for GPU acceleration. Firefox users will automatically use the multi‑threaded CPU engine.
 
 ```bash
-git clone https://github.com/richie-rich90454/n-body-sim.git
-cd n-body-sim
+git clone https://github.com/richie-rich90454/nbody-sim.git
+cd nbody-sim
 npm install
 npm run dev      # start development server with HMR
 npm run build    # production build into dist/
@@ -291,19 +286,19 @@ Open the provided URL in a browser. Use mouse/trackpad to rotate, zoom, and pan.
 
 ## Technology Stack
 
-| Category              | Technology                                                          |
-| --------------------- | ------------------------------------------------------------------- |
-| Language              | TypeScript 6.0                                                      |
-| Build Tool            | Vite 8                                                              |
-| GPU Acceleration      | WebGPU (WGSL compute shaders, `dispatchWorkgroups`)                 |
-| CPU Parallelism       | Web Workers, `SharedArrayBuffer`, `Atomics` (fallback)              |
-| 3D Rendering          | Three.js r184, custom GLSL point sprites                            |
-| Post‑Processing       | `postprocessing` (UnrealBloomPass, ShaderPass)                      |
-| Color Interpolation   | chroma‑js 3.2                                                       |
-| UI Controls           | lil‑gui 0.21                                                        |
-| Mathematical Notation | KaTeX 0.16.45                                                       |
-| Code Formatting       | Prettier 3.8                                                        |
-| Dev Dependencies      | `@webgpu/types`, `@types/three`, `@types/chroma‑js`, `@types/katex` |
+| Category            | Technology                                                          |
+| ------------------- | ------------------------------------------------------------------- |
+| Language            | TypeScript 6.0                                                      |
+| Build Tool          | Vite 8                                                              |
+| GPU Acceleration    | WebGPU (WGSL compute shaders, `dispatchWorkgroups`)                 |
+| CPU Parallelism     | Web Workers, `SharedArrayBuffer` (fallback)                         |
+| 3D Rendering        | Three.js r184, custom GLSL point sprites                            |
+| Post‑Processing     | `postprocessing` (UnrealBloomPass, ShaderPass)                      |
+| Color Interpolation | chroma‑js 3.2                                                       |
+| Diagrams & Notation | Mermaid 11.14, KaTeX 0.16.45                                        |
+| UI Controls         | lil‑gui 0.21                                                        |
+| Code Formatting     | Prettier 3.8                                                        |
+| Dev Dependencies    | `@webgpu/types`, `@types/three`, `@types/chroma‑js`, `@types/katex` |
 
 ---
 

@@ -22,6 +22,7 @@
         "chroma-js": "^3.2.0",
         "katex": "^0.16.45",
         "lil-gui": "^0.21.0",
+        "mermaid": "^11.14.0",
         "postprocessing": "^6.39.1",
         "three": "^0.184.0"
     },
@@ -33,5 +34,8 @@
         "prettier": "^3.8.3",
         "typescript": "^6.0.3",
         "vite": "^8.0.10"
+    },
+    "overrides": {
+        "uuid": "14.0.0"
     }
 }
