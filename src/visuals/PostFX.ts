@@ -18,13 +18,16 @@ const lensingFragmentShader = `
   uniform vec2 uBlackHoleScreenPos;
   uniform float uStrength;
   uniform float uAspect;
-
   void main() {
     vec2 uv = vUv;
+    if (uStrength <= 0.0) {
+      gl_FragColor = texture2D(tDiffuse, uv);
+      return;
+    }
     vec2 delta = uv - uBlackHoleScreenPos;
     delta.x *= uAspect;
     float dist = length(delta);
-    if (dist < 0.001 || uStrength <= 0.0) {
+    if (dist < 0.001) {
       gl_FragColor = texture2D(tDiffuse, uv);
       return;
     }
@@ -33,10 +36,11 @@ const lensingFragmentShader = `
     vec2 offset = delta * deflection;
     offset.x /= uAspect;
     vec2 sampleUV = uv - offset;
-    sampleUV = clamp(sampleUV, vec2(0.0), vec2(1.0));
+    sampleUV = clamp(sampleUV, 0.0, 1.0);
     gl_FragColor = texture2D(tDiffuse, sampleUV);
   }
 `;
+
 export class PostFX {
     public composer: EffectComposer;
     public bloomPass: UnrealBloomPass;
@@ -82,8 +86,12 @@ export class PostFX {
     public setLensingParams(screenPos: Vector2, mass: number) {
         this.lensingUniforms.uBlackHoleScreenPos.value.copy(screenPos);
         const scale = 0.000008;
-        this.lensingUniforms.uStrength.value = mass > 0 ? mass * scale : 0.0;
+        this.lensingUniforms.uStrength.value = mass * scale;
         this.lensingUniforms.uAspect.value = window.innerWidth / window.innerHeight;
+    }
+
+    public setLensingEnabled(enabled: boolean) {
+        this.lensingPass.enabled = enabled;
     }
 
     public setSize(width: number, height: number) {

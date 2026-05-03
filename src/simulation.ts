@@ -7,7 +7,7 @@ import { PostFX } from "./visuals/PostFX";
 import { UIController, SimConfig } from "./visuals/UIController";
 import { updateFPSDisplay, updateEnergyDisplay } from "./ui";
 import { RotCurve } from "./visuals/RotCurve";
-import { Vector2 } from "three";
+import { Vector2, Frustum, Matrix4 } from "three";
 
 const GALAXY_RADIUS = 400;
 
@@ -52,6 +52,10 @@ let pendingInjection: { index: number; mass: number } | null = null;
 let energyWorker: Worker | null = null;
 let energyPending = false;
 let latestEnergy: number | null = null;
+
+let smoothedLensingStrength = 0;
+let smoothedLensingPosX = 0.5;
+let smoothedLensingPosY = 0.5;
 
 function sanitizeBuffer(data: Float32Array) {
     for (let i = 0; i < data.length; i++) {
@@ -287,25 +291,38 @@ export function animationLoop() {
 
     const bhPos = particleSystem.getBlackHoleWorldPos();
     if (bhPos) {
-        const screenPos = bhPos.clone().project(renderer.camera);
-        if (screenPos.z < 1.0) {
+        const camera = renderer.camera;
+        const m = new Matrix4().multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse);
+        const frustum = new Frustum().setFromProjectionMatrix(m);
+        const inFrustum = frustum.containsPoint(bhPos);
+
+        if (inFrustum) {
+            const screenPos = bhPos.clone().project(camera);
             const sx = (screenPos.x + 1) / 2;
             const sy = (-screenPos.y + 1) / 2;
+            const targetStrength = config.blackHoleMass * 0.000008;
+            const lerp = 0.15;
+            smoothedLensingStrength += (targetStrength - smoothedLensingStrength) * lerp;
+            smoothedLensingPosX += (sx - smoothedLensingPosX) * lerp;
+            smoothedLensingPosY += (sy - smoothedLensingPosY) * lerp;
 
-            const margin = 0.15;
-            const edgeDistX = Math.min(sx, 1.0 - sx);
-            const edgeDistY = Math.min(sy, 1.0 - sy);
-            const edgeDist = Math.min(edgeDistX, edgeDistY);
-
-            const fadeFactor = Math.min(1.0, edgeDist / margin);
-
-            const mass = config.blackHoleMass * fadeFactor;
-            postFX.setLensingParams(new Vector2(sx, sy), mass);
+            if (smoothedLensingStrength > 0.0001) {
+                postFX.setLensingEnabled(true);
+                postFX.setLensingParams(
+                    new Vector2(smoothedLensingPosX, smoothedLensingPosY),
+                    smoothedLensingStrength / 0.000008,
+                );
+            } else {
+                postFX.setLensingEnabled(false);
+            }
         } else {
-            postFX.setLensingParams(new Vector2(0.5, 0.5), 0);
+            postFX.setLensingEnabled(false);
+            smoothedLensingStrength *= 0.5;
+            if (smoothedLensingStrength < 0.00001) smoothedLensingStrength = 0;
         }
     } else {
-        postFX.setLensingParams(new Vector2(0.5, 0.5), 0);
+        postFX.setLensingEnabled(false);
+        smoothedLensingStrength = 0;
     }
 
     renderer.controls.autoRotate = config.autoRotate && !config.isPaused;
