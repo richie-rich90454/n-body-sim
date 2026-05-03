@@ -29,6 +29,7 @@ const lensingFragmentShader = `
     vec2 offset = delta * deflection;
     offset.x /= uAspect;
     vec2 sampleUV = uv - offset;
+    sampleUV = clamp(sampleUV, 0.0, 1.0);
     gl_FragColor = texture2D(tDiffuse, sampleUV);
   }
 `;

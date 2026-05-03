@@ -1,18 +1,15 @@
 ---
 name: Bug report
 about: Create a report to help us improve
-title: ''
-labels: ''
-assignees: ''
-
----
-
----
-name: 🐛 Bug Report
-about: Report a reproducible bug or issue
-title: "[BUG] "
-labels: bug
+title: ""
+labels: ""
 assignees: ""
+---
+
+---
+
+name: 🐛 Bug Report about: Report a reproducible bug or issue title: "[BUG] " labels: bug assignees: ""
+
 ---
 
 ## Description
@@ -45,8 +42,8 @@ What actually happened.
 
 - OS: (e.g., Windows 11, macOS)
 - Browser: (e.g., Chrome 123, Safari)
-- GPU (if relevant): 
-- Node.js version (if running locally): 
+- GPU (if relevant):
+- Node.js version (if running locally):
 
 ---
 

@@ -1,18 +1,15 @@
 ---
 name: Custom issue template
 about: Describe this issue template's purpose here.
-title: ''
-labels: ''
-assignees: ''
-
----
-
----
-name: 🧩 Custom Issue
-about: For anything that doesn’t fit other templates
-title: "[ISSUE] "
+title: ""
 labels: ""
 assignees: ""
+---
+
+---
+
+name: 🧩 Custom Issue about: For anything that doesn’t fit other templates title: "[ISSUE] " labels: "" assignees: ""
+
 ---
 
 ## Summary

@@ -21,21 +21,23 @@ Thank you for your interest in contributing to **N-Body Gravitational Dynamics**
 
 1. Fork the repository
 2. Clone your fork:
-   ```bash
-   git clone https://github.com/your-username/nbody-sim.git
-   cd nbody-sim
+
+    ```bash
+    git clone https://github.com/your-username/nbody-sim.git
+    cd nbody-sim
     ```
 
 3. Install dependencies:
 
-   ```bash
-   npm install
-   ```
+    ```bash
+    npm install
+    ```
+
 4. Start development server:
 
-   ```bash
-   npm run dev
-   ```
+    ```bash
+    npm run dev
+    ```
 
 ---
 
@@ -43,8 +45,8 @@ Thank you for your interest in contributing to **N-Body Gravitational Dynamics**
 
 ### Requirements
 
-* Node.js ≥ 18
-* A modern browser (Chrome / Edge / Safari recommended for WebGPU)
+- Node.js ≥ 18
+- A modern browser (Chrome / Edge / Safari recommended for WebGPU)
 
 ### Build Commands
 
@@ -60,16 +62,16 @@ npm run preview  # preview production build
 
 This project prioritizes:
 
-* **Physical correctness** over shortcuts
-* **Deterministic behavior** (CPU and GPU paths should match)
-* **Performance transparency** (no hidden approximations)
-* **Educational clarity** (clean math, readable structure)
+- **Physical correctness** over shortcuts
+- **Deterministic behavior** (CPU and GPU paths should match)
+- **Performance transparency** (no hidden approximations)
+- **Educational clarity** (clean math, readable structure)
 
 Avoid introducing:
 
-* Approximate solvers (e.g., Barnes–Hut) unless explicitly scoped
-* Hidden state mutations
-* Non-deterministic parallel logic
+- Approximate solvers (e.g., Barnes–Hut) unless explicitly scoped
+- Hidden state mutations
+- Non-deterministic parallel logic
 
 ---
 
@@ -77,39 +79,39 @@ Avoid introducing:
 
 ### 🧠 Physics / Math
 
-* Improve numerical stability
-* Add new integration schemes (must be well-justified)
-* Improve energy conservation
+- Improve numerical stability
+- Add new integration schemes (must be well-justified)
+- Improve energy conservation
 
 ### ⚡ Performance
 
-* Optimize WebGPU shaders
-* Improve memory layout / cache behavior
-* Reduce CPU-GPU sync overhead
+- Optimize WebGPU shaders
+- Improve memory layout / cache behavior
+- Reduce CPU-GPU sync overhead
 
 ### 🎨 Visuals
 
-* Shader improvements
-* Post-processing effects
-* Better color mapping or particle rendering
+- Shader improvements
+- Post-processing effects
+- Better color mapping or particle rendering
 
 ### 🧩 Features
 
-* New UI controls
-* Additional diagnostics (e.g., angular momentum)
-* Better educational explanations
+- New UI controls
+- Additional diagnostics (e.g., angular momentum)
+- Better educational explanations
 
 ### 🐛 Bug Fixes
 
-* CPU/GPU mismatch issues
-* Race conditions in workers
-* Rendering artifacts
+- CPU/GPU mismatch issues
+- Race conditions in workers
+- Rendering artifacts
 
 ### 📚 Documentation
 
-* README improvements
-* Better explanations (AP → advanced levels)
-* Code comments
+- README improvements
+- Better explanations (AP → advanced levels)
+- Code comments
 
 ---
 
@@ -117,31 +119,30 @@ Avoid introducing:
 
 ### General
 
-* Use **TypeScript strict mode**
-* Prefer **pure functions** where possible
-* Avoid unnecessary allocations in hot paths
-* Keep simulation logic separate from rendering
+- Use **TypeScript strict mode**
+- Prefer **pure functions** where possible
+- Avoid unnecessary allocations in hot paths
+- Keep simulation logic separate from rendering
 
 ### Formatting
 
-* Prettier is enforced:
+- Prettier is enforced:
 
-  ```bash
-  npx prettier --write .
-  ```
+    ```bash
+    npx prettier --write .
+    ```
 
 ### Naming
 
-* Use descriptive names:
-
-  * `computeAcceleration` ✅
-  * `doStuff` ❌
+- Use descriptive names:
+    - `computeAcceleration` ✅
+    - `doStuff` ❌
 
 ### Structure
 
-* `simulation/` → physics + execution
-* `visuals/` → rendering only
-* `math/` → reusable math/initialization logic
+- `simulation/` → physics + execution
+- `visuals/` → rendering only
+- `math/` → reusable math/initialization logic
 
 ---
 
@@ -155,19 +156,19 @@ type(scope): short description
 
 ### Examples
 
-* `feat(webgpu): add fused leapfrog compute pass`
-* `fix(cpu): resolve worker synchronization bug`
-* `docs(readme): correct LaTeX rendering`
-* `perf(simulation): reduce buffer copies`
+- `feat(webgpu): add fused leapfrog compute pass`
+- `fix(cpu): resolve worker synchronization bug`
+- `docs(readme): correct LaTeX rendering`
+- `perf(simulation): reduce buffer copies`
 
 ### Types
 
-* `feat` – new feature
-* `fix` – bug fix
-* `perf` – performance improvement
-* `docs` – documentation
-* `refactor` – code restructuring
-* `chore` – tooling / config
+- `feat` – new feature
+- `fix` – bug fix
+- `perf` – performance improvement
+- `docs` – documentation
+- `refactor` – code restructuring
+- `chore` – tooling / config
 
 ---
 
@@ -175,30 +176,28 @@ type(scope): short description
 
 1. Create a feature branch:
 
-   ```bash
-   git checkout -b feature/my-change
-   ```
+    ```bash
+    git checkout -b feature/my-change
+    ```
 
 2. Make your changes
 
 3. Ensure:
-
-   * Code builds successfully
-   * No TypeScript errors
-   * Formatting is clean
-   * CPU and GPU paths behave consistently
+    - Code builds successfully
+    - No TypeScript errors
+    - Formatting is clean
+    - CPU and GPU paths behave consistently
 
 4. Commit and push:
 
-   ```bash
-   git push origin feature/my-change
-   ```
+    ```bash
+    git push origin feature/my-change
+    ```
 
 5. Open a Pull Request with:
-
-   * Clear description
-   * Screenshots (if visual changes)
-   * Performance notes (if applicable)
+    - Clear description
+    - Screenshots (if visual changes)
+    - Performance notes (if applicable)
 
 ---
 
@@ -206,10 +205,10 @@ type(scope): short description
 
 Your PR will be evaluated based on:
 
-* Correctness (physics + logic)
-* Performance impact
-* Code clarity
-* Consistency with project architecture
+- Correctness (physics + logic)
+- Performance impact
+- Code clarity
+- Consistency with project architecture
 
 ---
 
@@ -217,19 +216,19 @@ Your PR will be evaluated based on:
 
 When opening an issue, include:
 
-* Clear description
-* Steps to reproduce
-* Expected vs actual behavior
-* Browser + OS
-* Screenshots or logs if relevant
+- Clear description
+- Steps to reproduce
+- Expected vs actual behavior
+- Browser + OS
+- Screenshots or logs if relevant
 
 ---
 
 ## Additional Notes
 
-* Keep PRs focused—avoid mixing unrelated changes
-* Large features should be discussed in an issue first
-* Respect the existing architecture unless proposing a justified redesign
+- Keep PRs focused—avoid mixing unrelated changes
+- Large features should be discussed in an issue first
+- Respect the existing architecture unless proposing a justified redesign
 
 ---
 

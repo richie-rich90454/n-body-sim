@@ -53,6 +53,14 @@ let energyWorker: Worker | null = null;
 let energyPending = false;
 let latestEnergy: number | null = null;
 
+function sanitizeBuffer(data: Float32Array) {
+    for (let i = 0; i < data.length; i++) {
+        if (!Number.isFinite(data[i])) {
+            data[i] = 0;
+        }
+    }
+}
+
 function initEnergyWorker(buffer: SharedArrayBuffer) {
     if (energyWorker) energyWorker.terminate();
     energyWorker = new Worker(new URL("./simulation/energy.worker.ts", import.meta.url), {
@@ -127,6 +135,7 @@ export async function createSimulation(particleCount: number) {
         physicsBuffer = new Float32Array(initialData.length);
         accelArray = new Float32Array((renderBuffer.length / STRIDE) * 3);
         simManager.onUpdate = (data) => {
+            sanitizeBuffer(data);
             renderBuffer = data;
             if (particleSystem) particleSystem.update(data, config.particleSize, blackHoleIndex);
         };
@@ -213,6 +222,7 @@ export async function stepOnce(): Promise<void> {
             blackHoleActive ? blackHoleIndex : -1,
             physicsBuffer,
         );
+        sanitizeBuffer(physicsBuffer);
         const tmp = renderBuffer;
         renderBuffer = physicsBuffer;
         physicsBuffer = tmp;
@@ -278,8 +288,21 @@ export function animationLoop() {
     const bhPos = particleSystem.getBlackHoleWorldPos();
     if (bhPos) {
         const screenPos = bhPos.clone().project(renderer.camera);
-        const mass = config.blackHoleMass;
-        postFX.setLensingParams(new Vector2((screenPos.x + 1) / 2, (-screenPos.y + 1) / 2), mass);
+        if (
+            screenPos.z < 1.0 &&
+            screenPos.x >= -1.0 &&
+            screenPos.x <= 1.0 &&
+            screenPos.y >= -1.0 &&
+            screenPos.y <= 1.0
+        ) {
+            const mass = config.blackHoleMass;
+            postFX.setLensingParams(
+                new Vector2((screenPos.x + 1) / 2, (-screenPos.y + 1) / 2),
+                mass,
+            );
+        } else {
+            postFX.setLensingParams(new Vector2(0.5, 0.5), 0);
+        }
     } else {
         postFX.setLensingParams(new Vector2(0.5, 0.5), 0);
     }
@@ -333,6 +356,7 @@ export function animationLoop() {
                     blackHoleActive ? blackHoleIndex : -1,
                     physicsBuffer,
                 );
+                sanitizeBuffer(physicsBuffer);
                 const tmp = renderBuffer;
                 renderBuffer = physicsBuffer;
                 physicsBuffer = tmp;

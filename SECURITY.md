@@ -19,8 +19,8 @@ If you discover a security vulnerability, please report it responsibly.
 
 ### How to Report
 
-- **Email:** richie.rich90454@gmail.com  
-- **GitHub:** Open a *private* security advisory via GitHub (preferred if available)
+- **Email:** richie.rich90454@gmail.com
+- **GitHub:** Open a _private_ security advisory via GitHub (preferred if available)
 
 Please include as much detail as possible:
 
@@ -34,7 +34,7 @@ Please include as much detail as possible:
 ### What to Expect
 
 - **Acknowledgement:** within 5 days
-- **Initial assessment:** within 5–10 days  
+- **Initial assessment:** within 5–10 days
 - **Resolution timeline:** depends on severity and complexity
 
 You will be kept informed of progress throughout the process.
