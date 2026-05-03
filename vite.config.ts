@@ -20,11 +20,10 @@ export default defineConfig({
                         return "mermaid-deps";
                     if (id.includes("node_modules")) return "vendor";
                 },
-                codeSplitting: true
+                codeSplitting: true,
             },
             treeshake: {
                 moduleSideEffects: (id) => {
-                    if (id.includes("node_modules/chroma-js")) return false;
                     if (id.includes("node_modules/katex")) return false;
                     if (id.includes("node_modules/lil-gui")) return false;
                     return true;
