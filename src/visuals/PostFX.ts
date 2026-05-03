@@ -11,6 +11,7 @@ const lensingVertexShader = `
     gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
   }
 `;
+
 const lensingFragmentShader = `
   varying vec2 vUv;
   uniform sampler2D tDiffuse;
@@ -23,9 +24,9 @@ const lensingFragmentShader = `
     delta.x *= uAspect;
     float dist = length(delta);
     if (dist < 0.001) { gl_FragColor = texture2D(tDiffuse, uv); return; }
-    float factor = uStrength / (dist * dist + 0.0001);
-    factor = min(factor, 0.1);
-    vec2 offset = delta * factor;
+    float deflection = uStrength / (dist * dist + 0.0001);
+    deflection = min(deflection, 0.15);
+    vec2 offset = delta * deflection;
     offset.x /= uAspect;
     vec2 sampleUV = uv - offset;
     gl_FragColor = texture2D(tDiffuse, sampleUV);
@@ -57,7 +58,7 @@ export class PostFX {
         this.lensingUniforms = {
             tDiffuse: { value: null },
             uBlackHoleScreenPos: { value: new Vector2(0.5, 0.5) },
-            uStrength: { value: 0.015 },
+            uStrength: { value: 0.0 },
             uAspect: { value: window.innerWidth / window.innerHeight },
         };
         const lensingMat = new ShaderMaterial({
@@ -74,9 +75,10 @@ export class PostFX {
         this.bloomPass.strength = value;
     }
 
-    public setLensingScreenPos(screenPos: Vector2, blackHoleRadius: number = 1.0) {
+    public setLensingParams(screenPos: Vector2, mass: number) {
         this.lensingUniforms.uBlackHoleScreenPos.value.copy(screenPos);
-        this.lensingUniforms.uStrength.value = 0.008 * blackHoleRadius;
+        const scale = 0.000008;
+        this.lensingUniforms.uStrength.value = mass * scale;
         this.lensingUniforms.uAspect.value = window.innerWidth / window.innerHeight;
     }
 

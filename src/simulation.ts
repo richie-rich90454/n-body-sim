@@ -128,7 +128,7 @@ export async function createSimulation(particleCount: number) {
         accelArray = new Float32Array((renderBuffer.length / STRIDE) * 3);
         simManager.onUpdate = (data) => {
             renderBuffer = data;
-            particleSystem.update(data, config.particleSize, blackHoleIndex);
+            if (particleSystem) particleSystem.update(data, config.particleSize, blackHoleIndex);
         };
     }
 
@@ -141,13 +141,15 @@ export async function createSimulation(particleCount: number) {
         if (particleSystem.backgroundStars) renderer.scene.remove(particleSystem.backgroundStars);
         particleSystem.dispose();
     }
-    particleSystem = new ParticleSystem(particleCount);
-    renderer.scene.add(particleSystem.points);
-    renderer.scene.add(particleSystem.bulgePoints);
-    renderer.scene.add(particleSystem.dustPoints);
-    renderer.scene.add(particleSystem.haloPoints);
-    if (particleSystem.blackHoleSprite) renderer.scene.add(particleSystem.blackHoleSprite);
-    if (particleSystem.backgroundStars) renderer.scene.add(particleSystem.backgroundStars);
+    if (typeof window !== "undefined" && !document.hidden) {
+        particleSystem = new ParticleSystem(particleCount);
+        renderer.scene.add(particleSystem.points);
+        renderer.scene.add(particleSystem.bulgePoints);
+        renderer.scene.add(particleSystem.dustPoints);
+        renderer.scene.add(particleSystem.haloPoints);
+        if (particleSystem.blackHoleSprite) renderer.scene.add(particleSystem.blackHoleSprite);
+        if (particleSystem.backgroundStars) renderer.scene.add(particleSystem.backgroundStars);
+    }
 
     const sharedBuf = (
         useGPU ? initialData.buffer : simManager!.particleData.buffer
@@ -159,16 +161,13 @@ export async function createSimulation(particleCount: number) {
     pendingInjection = null;
     physicsBusy = false;
     resetEnergyBaseline();
-    if (!rotCurve) rotCurve = new RotCurve();
+    if (!rotCurve && particleSystem) rotCurve = new RotCurve();
 }
 
-let lastTime = performance.now();
-let frameCount = 0;
-let fpsTimer = performance.now();
-let rotCurveCounter = 0;
+export async function stepOnce(): Promise<void> {
+    if (resetPending || !renderBuffer) return;
+    if (physicsBusy) return;
 
-function startPhysicsStep() {
-    if (resetPending) return;
     const effectiveDt = config.timeStep * config.timeScale;
     const subSteps = config.integrationSteps;
     const subDt = effectiveDt / subSteps;
@@ -203,29 +202,38 @@ function startPhysicsStep() {
     physicsBusy = true;
     physicsBuffer.set(renderBuffer);
 
-    (async () => {
-        try {
-            await computeFullStep(
-                webgpuForce!,
-                physicsBuffer,
-                G,
-                softSq,
-                subDt,
-                subSteps,
-                blackHoleActive ? blackHoleIndex : -1,
-                physicsBuffer,
-            );
-            const tmp = renderBuffer;
-            renderBuffer = physicsBuffer;
-            physicsBuffer = tmp;
+    if (useGPU && webgpuForce) {
+        await computeFullStep(
+            webgpuForce,
+            physicsBuffer,
+            G,
+            softSq,
+            subDt,
+            subSteps,
+            blackHoleActive ? blackHoleIndex : -1,
+            physicsBuffer,
+        );
+        const tmp = renderBuffer;
+        renderBuffer = physicsBuffer;
+        physicsBuffer = tmp;
+        if (particleSystem)
             particleSystem.update(renderBuffer, config.particleSize, blackHoleIndex);
-            physicsBusy = false;
-        } catch (e) {
-            console.error("GPU physics step failed:", e);
-            physicsBusy = false;
-        }
-    })();
+        physicsBusy = false;
+    } else if (!useGPU && simManager) {
+        simManager.step({
+            G,
+            DT: effectiveDt,
+            SOFTENING: config.softeningEpsilon,
+            STEPS: subSteps,
+        });
+        physicsBusy = false;
+    }
 }
+
+let lastTime = performance.now();
+let frameCount = 0;
+let fpsTimer = performance.now();
+let rotCurveCounter = 0;
 
 export function animationLoop() {
     requestAnimationFrame(animationLoop);
@@ -270,15 +278,71 @@ export function animationLoop() {
     const bhPos = particleSystem.getBlackHoleWorldPos();
     if (bhPos) {
         const screenPos = bhPos.clone().project(renderer.camera);
-        postFX.setLensingScreenPos(new Vector2((screenPos.x + 1) / 2, (-screenPos.y + 1) / 2), 1.2);
+        const mass = config.blackHoleMass;
+        postFX.setLensingParams(new Vector2((screenPos.x + 1) / 2, (-screenPos.y + 1) / 2), mass);
     } else {
-        postFX.setLensingScreenPos(new Vector2(0.5, 0.5), 0.0);
+        postFX.setLensingParams(new Vector2(0.5, 0.5), 0);
     }
 
     renderer.controls.autoRotate = config.autoRotate && !config.isPaused;
 
     if (!config.isPaused && useGPU && !physicsBusy && !resetPending) {
-        startPhysicsStep();
+        const effectiveDt = config.timeStep * config.timeScale;
+        const subSteps = config.integrationSteps;
+        const subDt = effectiveDt / subSteps;
+        const count = renderBuffer.length / STRIDE;
+        const G = config.gravitationalConstant;
+        const softSq = config.softeningEpsilon * config.softeningEpsilon;
+
+        if (pendingInjection) {
+            const { index, mass } = pendingInjection;
+            blackHoleIndex = index;
+            blackHoleActive = true;
+            renderBuffer[index * STRIDE + 6] = mass;
+            renderBuffer[index * STRIDE + 3] = 0;
+            renderBuffer[index * STRIDE + 4] = 0;
+            renderBuffer[index * STRIDE + 5] = 0;
+            physicsBuffer[index * STRIDE + 6] = mass;
+            physicsBuffer[index * STRIDE + 3] = 0;
+            physicsBuffer[index * STRIDE + 4] = 0;
+            physicsBuffer[index * STRIDE + 5] = 0;
+            if (!useGPU && simManager) {
+                simManager.setBlackHoleIndex(blackHoleIndex);
+                simManager.setParticleMass(index, mass);
+                simManager.particleData[index * STRIDE + 3] = 0;
+                simManager.particleData[index * STRIDE + 4] = 0;
+                simManager.particleData[index * STRIDE + 5] = 0;
+                simManager.reset(simManager.particleData);
+            }
+            pendingInjection = null;
+            resetEnergyBaseline();
+        }
+
+        physicsBusy = true;
+        physicsBuffer.set(renderBuffer);
+
+        (async () => {
+            try {
+                await computeFullStep(
+                    webgpuForce!,
+                    physicsBuffer,
+                    G,
+                    softSq,
+                    subDt,
+                    subSteps,
+                    blackHoleActive ? blackHoleIndex : -1,
+                    physicsBuffer,
+                );
+                const tmp = renderBuffer;
+                renderBuffer = physicsBuffer;
+                physicsBuffer = tmp;
+                particleSystem.update(renderBuffer, config.particleSize, blackHoleIndex);
+                physicsBusy = false;
+            } catch (e) {
+                console.error("GPU physics step failed:", e);
+                physicsBusy = false;
+            }
+        })();
     } else if (!config.isPaused && !useGPU && simManager) {
         simManager.step({
             G: config.gravitationalConstant,
@@ -340,4 +404,7 @@ export function getSimManager() {
 }
 export function getParticleSystem() {
     return particleSystem;
+}
+export function getEnergyDrift(): number {
+    return energyDrift;
 }
