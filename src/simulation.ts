@@ -173,6 +173,7 @@ function startPhysicsStep() {
                 softSq,
                 subDt,
                 subSteps,
+                blackHoleActive ? blackHoleIndex : -1,
                 physicsBuffer,
             );
             const tmp = renderBuffer;
