@@ -481,6 +481,16 @@ export class ParticleSystem {
                 dustDarken * 0.4 +
                 energyFactor * 0.1;
 
+            const vx = data[base + 3],
+                vy = data[base + 4],
+                vz = data[base + 5];
+            const spd = Math.sqrt(vx * vx + vy * vy + vz * vz);
+            if (spd > 0) {
+                const nz = vz / spd;
+                const dopplerFactor = 1.0 + nz * 0.1;
+                brightness *= dopplerFactor;
+            }
+
             this.colorArray[posIdx] = Math.min(R * brightness, 1.8);
             this.colorArray[posIdx + 1] = Math.min(G * brightness, 1.8);
             this.colorArray[posIdx + 2] = Math.min(B * brightness, 1.8);
