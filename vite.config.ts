@@ -12,11 +12,15 @@ export default defineConfig({
                     if (id.includes("node_modules/three")) return "three";
                     if (id.includes("node_modules/postprocessing")) return "postprocessing";
                     if (id.includes("node_modules/katex")) return "katex";
-                    if (id.includes("node_modules/mermaid")) return "mermaid";
                     if (id.includes("node_modules/lil-gui")) return "lil-gui";
                     if (id.includes("node_modules/chroma-js")) return "chroma-js";
+                    if (id.includes("node_modules/@mermaid-js")) return "mermaid-core";
+                    if (id.includes("node_modules/mermaid")) return "mermaid-core";
+                    if (id.includes("node_modules/dagre") || id.includes("node_modules/d3"))
+                        return "mermaid-deps";
                     if (id.includes("node_modules")) return "vendor";
                 },
+                codeSplitting: true
             },
             treeshake: {
                 moduleSideEffects: (id) => {
