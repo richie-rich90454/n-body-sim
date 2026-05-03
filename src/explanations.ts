@@ -2,7 +2,11 @@ import katex from "katex";
 import "katex/dist/katex.min.css";
 import mermaid from "mermaid";
 
-mermaid.initialize({ startOnLoad: false, theme: "dark" });
+mermaid.initialize({
+    startOnLoad: false,
+    theme: "dark",
+    fontFamily: '"Noto Sans", sans-serif',
+});
 
 export function renderFormula(tex: string, displayMode: boolean = true): string {
     try {
@@ -71,6 +75,70 @@ flowchart LR
     D --> E[Compute a1 from x1]
     E --> F[v1 = v_half + a1 * dt / 2]
     F --> G[End: x1, v1]
+`;
+
+const gpuPathDiagram = `
+sequenceDiagram
+    participant Main as Main Thread
+    participant GPU as GPU
+    participant Buf as Buffers (stateA, stateB, accel, staging)
+    Main->>Buf: writeBuffer(stateA, initial data)
+    loop for each substep
+        Main->>GPU: Command buffer (accel from stateA, leapfrog1, accel from stateB, leapfrog2)
+        GPU->>Buf: executes compute passes, writes stateA
+    end
+    Main->>GPU: copyBufferToBuffer(stateA -> staging)
+    GPU-->>Main: staging.mapAsync()
+    Main->>Main: read final state, swap render/physics buffers
+    Main->>Main: ParticleSystem.update(renderBuffer)
+`;
+
+const cpuPathDiagram = `
+sequenceDiagram
+    participant Main as Main Thread
+    box Shared Memory
+    participant SAB as SharedArrayBuffer
+    end
+    participant W1 as Worker 1
+    participant W2 as Worker 2
+    participant Wn as Worker N
+
+    Main->>SAB: allocate & write initial particle data (x,v,m)
+    loop for each substep
+        Main->>W1: postMessage({startIdx, endIdx, G, ε², blackHoleIdx})
+        Main->>W2: postMessage({startIdx, endIdx, G, ε², blackHoleIdx})
+        Main->>Wn: postMessage({startIdx, endIdx, G, ε², blackHoleIdx})
+        activate W1
+        activate W2
+        activate Wn
+        W1->>SAB: read all particle data (read-only)
+        W2->>SAB: read all particle data (read-only)
+        Wn->>SAB: read all particle data (read-only)
+        W1-->>Main: postMessage(accel slice) [transferable]
+        W2-->>Main: postMessage(accel slice) [transferable]
+        Wn-->>Main: postMessage(accel slice) [transferable]
+        deactivate W1
+        deactivate W2
+        deactivate Wn
+        Main->>SAB: apply first half-kick & drift (CPU)
+        Main->>W1: postMessage({startIdx, endIdx, G, ε², blackHoleIdx})
+        Main->>W2: postMessage({startIdx, endIdx, G, ε², blackHoleIdx})
+        Main->>Wn: postMessage({startIdx, endIdx, G, ε², blackHoleIdx})
+        activate W1
+        activate W2
+        activate Wn
+        W1->>SAB: read updated particle data
+        W2->>SAB: read updated particle data
+        Wn->>SAB: read updated particle data
+        W1-->>Main: postMessage(accel slice) [transferable]
+        W2-->>Main: postMessage(accel slice) [transferable]
+        Wn-->>Main: postMessage(accel slice) [transferable]
+        deactivate W1
+        deactivate W2
+        deactivate Wn
+        Main->>SAB: apply second half-kick (CPU)
+    end
+    Main->>Main: ParticleSystem.update()
 `;
 
 export const explanations = {
@@ -210,6 +278,12 @@ export const explanations = {
 
     <h3>LEAPFROG INTEGRATION FLOW</h3>
     ${mermaidDiagram(leapfrogDiagram)}
+
+    <h3>WEBGPU COMPUTE PIPELINE</h3>
+    ${mermaidDiagram(gpuPathDiagram)}
+
+    <h3>CPU WORKER PIPELINE</h3>
+    ${mermaidDiagram(cpuPathDiagram)}
 
     <h3>DEPENDENCIES</h3>
     <ul>
