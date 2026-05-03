@@ -23,7 +23,6 @@
         "katex": "^0.16.45",
         "lil-gui": "^0.21.0",
         "postprocessing": "^6.39.1",
-        "stats-gl": "^4.1.0",
         "three": "^0.184.0"
     },
     "devDependencies": {
