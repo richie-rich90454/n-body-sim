@@ -20,20 +20,20 @@
     "type": "module",
     "dependencies": {
         "chroma-js": "^3.2.0",
-        "katex": "^0.16.45",
+        "katex": "^0.17.0",
         "lil-gui": "^0.21.0",
-        "mermaid": "^11.14.0",
-        "postprocessing": "^6.39.1",
-        "three": "^0.184.0"
+        "mermaid": "^11.16.0",
+        "postprocessing": "^6.39.2",
+        "three": "^0.185.1"
     },
     "devDependencies": {
         "@types/chroma-js": "^3.1.2",
         "@types/katex": "^0.16.8",
-        "@types/three": "^0.184.0",
-        "@webgpu/types": "^0.1.69",
-        "prettier": "^3.8.3",
+        "@types/three": "^0.185.1",
+        "@webgpu/types": "^0.1.71",
+        "prettier": "^3.9.5",
         "typescript": "^6.0.3",
-        "vite": "^8.0.10"
+        "vite": "^8.1.4"
     },
     "overrides": {
         "uuid": "14.0.0"
