@@ -5,7 +5,7 @@
         "module": "ESNext",
         "types": ["@webgpu/types"],
         "lib": ["ES2020", "DOM", "WebWorker"],
-        "moduleResolution": "Node",
+        "moduleResolution": "bundler",
         "strict": true,
         "sourceMap": true,
         "resolveJsonModule": true,

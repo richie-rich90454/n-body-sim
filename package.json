@@ -32,10 +32,7 @@
         "@types/three": "^0.185.1",
         "@webgpu/types": "^0.1.71",
         "prettier": "^3.9.5",
-        "typescript": "^6.0.3",
+        "typescript": "^7.0.2",
         "vite": "^8.1.4"
-    },
-    "overrides": {
-        "uuid": "14.0.0"
     }
 }
