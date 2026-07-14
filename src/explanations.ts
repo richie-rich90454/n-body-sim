@@ -215,7 +215,7 @@ export const explanations = {
     <div class="equation">${renderFormula(eq.force_soft)}</div>
     <p>This keeps the integration stable without affecting large-scale dynamics.</p>
     <h3>GALACTIC NUCLEUS & BLACK HOLE INJECTION</h3>
-    <p>A central <strong>nucleus particle</strong> of mass 20,000 sits at the origin and is held fixed (immovable under disc forces) to prevent drift. This represents the dense star cluster or seed black hole found in real galaxies. The visual black hole sprite only appears when a particle’s mass exceeds 50,000 - the nucleus alone is below this threshold, so no sprite is shown initially.</p>
+    <p>A central <strong>nucleus particle</strong> of mass 20,000 sits at the origin and is held fixed (immovable under disc forces) to prevent drift. This represents the dense star cluster or seed black hole found in real galaxies. The visual black hole sprite only appears when a particle's mass exceeds 50,000 - the nucleus alone is below this threshold, so no sprite is shown initially.</p>
     <p>Clicking <span class="highlight">"Inject Black Hole"</span> turns the farthest particle into a supermassive black hole with mass <span class="highlight">Singular Mass</span> (default 150,000). Its velocity is zeroed, and the nucleus is unfrozen so both objects feel each other's gravity. This creates a dramatic merger event, often ejecting nearby stars via the gravitational slingshot effect.</p>
     <h3>ENERGY & STABILITY MONITORING</h3>
     <p>Total mechanical energy is computed on-the-fly by a dedicated web worker:</p>
