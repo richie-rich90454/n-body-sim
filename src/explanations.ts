@@ -40,7 +40,10 @@ function mermaidDiagram(code: string): string {
 }
 
 type DepMap = Record<string, string>;
-const allPkg: DepMap = { ...(pkg.dependencies as DepMap), ...(pkg.devDependencies as DepMap) };
+const allPkg: DepMap = {
+    ...(pkg.dependencies as DepMap),
+    ...(pkg.devDependencies as DepMap),
+};
 
 function ver(npmName: string): string {
     const v = allPkg[npmName];

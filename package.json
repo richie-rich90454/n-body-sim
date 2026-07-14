@@ -7,12 +7,12 @@
         "dev": "vite",
         "build": "vite build",
         "preview": "vite preview",
-        "format": "prettier --write .",
-        "format:check": "prettier --check .",
-        "format:js": "prettier --write \"**/*.{js,jsx,ts,tsx}\"",
-        "format:html": "prettier --write \"**/*.html\"",
-        "format:css": "prettier --write \"**/*.css\"",
-        "format:json": "prettier --write \"**/*.json\""
+        "format": "oxfmt --write .",
+        "format:check": "oxfmt --check .",
+        "format:js": "oxfmt --write \"**/*.{js,jsx,ts,tsx}\"",
+        "format:html": "oxfmt --write \"**/*.html\"",
+        "format:css": "oxfmt --write \"**/*.css\"",
+        "format:json": "oxfmt --write \"**/*.json\""
     },
     "keywords": [],
     "author": "richie-rich90454",
@@ -31,7 +31,7 @@
         "@types/katex": "^0.16.8",
         "@types/three": "^0.185.1",
         "@webgpu/types": "^0.1.71",
-        "prettier": "^3.9.5",
+        "oxfmt": "^0.59.0",
         "typescript": "^7.0.2",
         "vite": "^8.1.4"
     },

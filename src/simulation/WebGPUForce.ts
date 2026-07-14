@@ -74,8 +74,16 @@ export async function createWebGPUForce(
                 visibility: GPUShaderStage.COMPUTE,
                 buffer: { type: "read-only-storage" },
             },
-            { binding: 2, visibility: GPUShaderStage.COMPUTE, buffer: { type: "storage" } },
-            { binding: 3, visibility: GPUShaderStage.COMPUTE, buffer: { type: "uniform" } },
+            {
+                binding: 2,
+                visibility: GPUShaderStage.COMPUTE,
+                buffer: { type: "storage" },
+            },
+            {
+                binding: 3,
+                visibility: GPUShaderStage.COMPUTE,
+                buffer: { type: "uniform" },
+            },
         ],
     });
 
@@ -181,7 +189,9 @@ fn main(@builtin(global_invocation_id) id: vec3<u32>) {
     const leapfrog1Module = device.createShaderModule({ code: leapfrog1Code });
     const leapfrog2Module = device.createShaderModule({ code: leapfrog2Code });
 
-    const pipelineLayout = device.createPipelineLayout({ bindGroupLayouts: [bindGroupLayout] });
+    const pipelineLayout = device.createPipelineLayout({
+        bindGroupLayouts: [bindGroupLayout],
+    });
 
     const accelPipeline = device.createComputePipeline({
         layout: pipelineLayout,

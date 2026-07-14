@@ -232,7 +232,10 @@ export class ParticleSystem {
         this.backgroundGeometry.setAttribute("position", new BufferAttribute(positions, 3));
         this.backgroundGeometry.setAttribute("color", new BufferAttribute(colors, 3));
         const mat = new ShaderMaterial({
-            uniforms: { pointSize: { value: 0.6 }, spriteTex: { value: this.spriteTexture } },
+            uniforms: {
+                pointSize: { value: 0.6 },
+                spriteTex: { value: this.spriteTexture },
+            },
             vertexShader: bgStarVert,
             fragmentShader: bgStarFrag,
             transparent: true,
