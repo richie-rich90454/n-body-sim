@@ -89,7 +89,9 @@ body {
     pointer-events: none;
     opacity: 0;
     visibility: hidden;
-    transition: opacity 0.3s ease, visibility 0.3s ease;
+    transition:
+        opacity 0.3s ease,
+        visibility 0.3s ease;
 }
 
 #modal-overlay.active {
@@ -113,7 +115,9 @@ body {
     pointer-events: auto;
     line-height: 1.7;
     transform: translateY(12px);
-    transition: transform 0.3s ease, opacity 0.25s ease;
+    transition:
+        transform 0.3s ease,
+        opacity 0.25s ease;
     opacity: 0;
 }
 

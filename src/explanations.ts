@@ -53,9 +53,19 @@ function badge(displayName: string, npmName?: string): string {
 }
 
 const depOrder = [
-    "three", "postprocessing", "lil-gui", "katex", "chroma-js", "mermaid",
-    "typescript", "vite", "prettier",
-    "@types/three", "@types/chroma-js", "@types/katex", "@webgpu/types",
+    "three",
+    "postprocessing",
+    "lil-gui",
+    "katex",
+    "chroma-js",
+    "mermaid",
+    "typescript",
+    "vite",
+    "prettier",
+    "@types/three",
+    "@types/chroma-js",
+    "@types/katex",
+    "@webgpu/types",
 ];
 
 function depItem(npmName: string): string {
