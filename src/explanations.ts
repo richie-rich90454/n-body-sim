@@ -64,7 +64,7 @@ const depOrder = [
     "mermaid",
     "typescript",
     "vite",
-    "prettier",
+    "oxfmt",
     "@types/three",
     "@types/chroma-js",
     "@types/katex",
