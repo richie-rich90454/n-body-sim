@@ -12,6 +12,10 @@ import {
     Texture,
 } from "three";
 import { STRIDE } from "../math/PhysicsEngine";
+import pointVert from "./shaders/point.vert.glsl?raw";
+import pointFrag from "./shaders/point.frag.glsl?raw";
+import bgStarVert from "./shaders/background-star.vert.glsl?raw";
+import bgStarFrag from "./shaders/background-star.frag.glsl?raw";
 
 const energyColorScale = chroma.scale(["#ffcc44", "#ffffff", "#88ccff"]).mode("lch");
 function buildEnergyLUT(steps: number): Float32Array {
@@ -201,32 +205,8 @@ export class ParticleSystem {
                 spriteTex: { value: spriteTex },
                 alphaMultiplier: { value: 1.0 },
             },
-            vertexShader: `
-        attribute vec3 color;
-        varying vec3 vColor;
-        varying float vAlpha;
-        uniform float pointSize;
-        uniform float time;
-        uniform float alphaMultiplier;
-        void main() {
-          float twinkle = 0.85 + 0.3 * sin(time);
-          vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
-          gl_PointSize = max(1.5, pointSize * (400.0 / -mvPosition.z) * twinkle);
-          gl_Position = projectionMatrix * mvPosition;
-          vColor = color;
-          vAlpha = alphaMultiplier;
-        }
-      `,
-            fragmentShader: `
-        varying vec3 vColor;
-        varying float vAlpha;
-        uniform sampler2D spriteTex;
-        void main() {
-          vec4 texColor = texture2D(spriteTex, gl_PointCoord);
-          float alpha = texColor.a * vAlpha;
-          gl_FragColor = vec4(vColor * texColor.rgb, alpha);
-        }
-      `,
+            vertexShader: pointVert,
+            fragmentShader: pointFrag,
             transparent: true,
             blending: AdditiveBlending,
             depthWrite: false,
@@ -253,25 +233,8 @@ export class ParticleSystem {
         this.backgroundGeometry.setAttribute("color", new BufferAttribute(colors, 3));
         const mat = new ShaderMaterial({
             uniforms: { pointSize: { value: 0.6 }, spriteTex: { value: this.spriteTexture } },
-            vertexShader: `
-        attribute vec3 color;
-        varying vec3 vColor;
-        uniform float pointSize;
-        void main() {
-          vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
-          gl_PointSize = max(1.5, pointSize * (300.0 / -mvPosition.z));
-          gl_Position = projectionMatrix * mvPosition;
-          vColor = color;
-        }
-      `,
-            fragmentShader: `
-        varying vec3 vColor;
-        uniform sampler2D spriteTex;
-        void main() {
-          vec4 tex = texture2D(spriteTex, gl_PointCoord);
-          gl_FragColor = vec4(vColor * tex.rgb, tex.a * 0.8);
-        }
-      `,
+            vertexShader: bgStarVert,
+            fragmentShader: bgStarFrag,
             transparent: true,
             blending: AdditiveBlending,
             depthWrite: false,
