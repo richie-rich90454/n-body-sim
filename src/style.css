@@ -1,3 +1,17 @@
+:root {
+    --blue: #4a8eff;
+    --blue-dim: rgba(74, 142, 255, 0.55);
+    --blue-subtle: rgba(74, 142, 255, 0.12);
+    --blue-border: rgba(74, 142, 255, 0.15);
+    --blue-border-strong: rgba(74, 142, 255, 0.25);
+    --surface: #0c1323;
+    --surface-elevated: #111a30;
+    --surface-overlay: #0e1628;
+    --text-primary: #d6e8ff;
+    --text-secondary: rgba(180, 212, 255, 0.6);
+    --text-body: rgba(180, 212, 255, 0.85);
+}
+
 body {
     margin: 0;
     overflow: hidden;
