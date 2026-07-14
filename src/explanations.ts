@@ -97,7 +97,7 @@ export const eq = {
 
 const architectureDiagram = `
 flowchart TD
-    A[User Interface] --> B[lil‑gui Control Panel]
+    A[User Interface] --> B[lil-gui Control Panel]
     A --> C[Info Modal]
     C --> D[KaTeX Explanations]
     B --> E[SimConfig]
@@ -196,36 +196,36 @@ sequenceDiagram
 
 export const explanations = {
     advanced: `
-    <p>A high‑performance N‑body galaxy simulation built for <strong>AP Physics C: Mechanics</strong> and <strong>AP Calculus BC</strong>. It combines a symplectic integrator, rigorous vector calculus, and modern GPU acceleration to deliver physically accurate orbits and real‑time interactivity.</p>
+    <p>A high-performance N-body galaxy simulation built for <strong>AP Physics C: Mechanics</strong> and <strong>AP Calculus BC</strong>. It combines a symplectic integrator, rigorous vector calculus, and modern GPU acceleration to deliver physically accurate orbits and real-time interactivity.</p>
     <h3>PHYSICS FOUNDATION</h3>
     <p><span class="highlight">Newton's Law of Universal Gravitation</span> in vector form: every pair of particles attracts each other along the line joining them. The magnitude is proportional to the product of their masses and inversely proportional to the square of their separation.</p>
     <div class="equation">${renderFormula(eq.F_ij)}</div>
     <p>By the <span class="highlight">superposition principle</span>, the net force on a particle is the vector sum of all individual gravitational forces. For N particles this requires ${renderInline("O(N^2)")} pairwise interactions per time step.</p>
     <div class="equation">${renderFormula(eq.F_net)}</div>
-    <p>Acceleration follows from Newton's second law: ${renderFormula(eq.accel_vec)}. The resulting equations of motion are a coupled system of second‑order ordinary differential equations.</p>
+    <p>Acceleration follows from Newton's second law: ${renderFormula(eq.accel_vec)}. The resulting equations of motion are a coupled system of second-order ordinary differential equations.</p>
     <h3>NUMERICAL INTEGRATION (AP Calculus BC)</h3>
-    <p>Only the two‑body problem has an analytical solution; for N > 2 we must approximate numerically. The simulation uses the <span class="highlight">Leapfrog (Störmer‑Verlet) integrator</span>, a second‑order symplectic method. Symplectic integrators preserve the geometric structure of Hamiltonian systems, giving excellent long‑term energy conservation compared to simple Euler methods.</p>
-    <p>The algorithm splits each time step ${renderInline("\\Delta t")} into a "kick‑drift‑kick" sequence:</p>
+    <p>Only the two-body problem has an analytical solution; for N > 2 we must approximate numerically. The simulation uses the <span class="highlight">Leapfrog (Störmer-Verlet) integrator</span>, a second-order symplectic method. Symplectic integrators preserve the geometric structure of Hamiltonian systems, giving excellent long-term energy conservation compared to simple Euler methods.</p>
+    <p>The algorithm splits each time step ${renderInline("\\Delta t")} into a "kick-drift-kick" sequence:</p>
     <div class="equation">${renderFormula(eq.leapfrog1)}</div>
-    <p>After positions are updated, accelerations are recomputed from the new configuration, and the second half‑kick completes the velocity:</p>
+    <p>After positions are updated, accelerations are recomputed from the new configuration, and the second half-kick completes the velocity:</p>
     <div class="equation">${renderFormula(eq.leapfrog2)}</div>
-    <p>The <span class="highlight">Sub‑steps per frame</span> slider divides each Δt into multiple smaller increments, reducing truncation error without slowing visual playback. A larger Δt increases the local error, visible as a rise in the <span class="highlight">Energy Drift</span> percentage.</p>
+    <p>The <span class="highlight">Sub-steps per frame</span> slider divides each Δt into multiple smaller increments, reducing truncation error without slowing visual playback. A larger Δt increases the local error, visible as a rise in the <span class="highlight">Energy Drift</span> percentage.</p>
     <h3>SOFTENING & REGULARIZATION</h3>
     <p>When particles nearly collide, the ${renderInline("1/r^2")} singularity causes arbitrarily large forces. We introduce a <span class="highlight">softening length ε</span> that smooths the force at small separations:</p>
     <div class="equation">${renderFormula(eq.force_soft)}</div>
-    <p>This keeps the integration stable without affecting large‑scale dynamics.</p>
+    <p>This keeps the integration stable without affecting large-scale dynamics.</p>
     <h3>GALACTIC NUCLEUS & BLACK HOLE INJECTION</h3>
     <p>A central <strong>nucleus particle</strong> of mass 20,000 sits at the origin and is held fixed (immovable under disc forces) to prevent drift. This represents the dense star cluster or seed black hole found in real galaxies. The visual black hole sprite only appears when a particle’s mass exceeds 50,000 – the nucleus alone is below this threshold, so no sprite is shown initially.</p>
     <p>Clicking <span class="highlight">"Inject Black Hole"</span> turns the farthest particle into a supermassive black hole with mass <span class="highlight">Singular Mass</span> (default 150,000). Its velocity is zeroed, and the nucleus is unfrozen so both objects feel each other's gravity. This creates a dramatic merger event, often ejecting nearby stars via the gravitational slingshot effect.</p>
     <h3>ENERGY & STABILITY MONITORING</h3>
-    <p>Total mechanical energy is computed on‑the‑fly by a dedicated web worker:</p>
+    <p>Total mechanical energy is computed on-the-fly by a dedicated web worker:</p>
     <div class="equation">${renderFormula(eq.energy)}</div>
-    <p>The percentage change since the last reset is displayed as <span class="highlight">Energy Drift</span>. A well‑tuned leapfrog run with ε=10 and 2 substeps typically drifts less than 0.01% per thousand steps.</p>
+    <p>The percentage change since the last reset is displayed as <span class="highlight">Energy Drift</span>. A well-tuned leapfrog run with ε=10 and 2 substeps typically drifts less than 0.01% per thousand steps.</p>
     <h3>PARALLEL & GPU ACCELERATION</h3>
-    <p>The ${renderInline("O(N^2)")} force calculation is the bottleneck. On <strong>WebGPU‑capable browsers</strong> (Chrome, Edge, Safari) the entire integration – acceleration, half‑kick, drift – runs on the GPU via custom WGSL compute shaders. All substeps are encoded into a single command buffer, minimising CPU‑GPU synchronisation overhead. On unsupported browsers, the simulation falls back to a multi‑threaded CPU implementation using <span class="highlight">Web Workers</span> and <span class="highlight">SharedArrayBuffer</span>. Both paths produce identical, exact results – the GPU simply delivers a dramatic speed‑up, allowing smooth playback at higher particle counts (up to 20,000+).</p>
+    <p>The ${renderInline("O(N^2)")} force calculation is the bottleneck. On <strong>WebGPU-capable browsers</strong> (Chrome, Edge, Safari) the entire integration – acceleration, half-kick, drift – runs on the GPU via custom WGSL compute shaders. All substeps are encoded into a single command buffer, minimising CPU-GPU synchronisation overhead. On unsupported browsers, the simulation falls back to a multi-threaded CPU implementation using <span class="highlight">Web Workers</span> and <span class="highlight">SharedArrayBuffer</span>. Both paths produce identical, exact results – the GPU simply delivers a dramatic speed-up, allowing smooth playback at higher particle counts (up to 20,000+).</p>
   `,
     intermediate: `
-    <p>A multi‑threaded particle simulation designed for <strong>AP Physics 1</strong> and <strong>AP Calculus AB</strong>. The core concepts are presented without vector calculus notation, though the underlying engine uses full 3D vectors.</p>
+    <p>A multi-threaded particle simulation designed for <strong>AP Physics 1</strong> and <strong>AP Calculus AB</strong>. The core concepts are presented without vector calculus notation, though the underlying engine uses full 3D vectors.</p>
     <h3>PHYSICS (AP Physics 1)</h3>
     <p><span class="highlight">Newton's Law of Universal Gravitation</span>: The attractive force between two point masses is proportional to the product of their masses and inversely proportional to the square of the distance between them.</p>
     <div class="equation">${renderFormula(eq.F_simple)}</div>
@@ -244,13 +244,13 @@ export const explanations = {
     <p><span class="highlight">G:</span> Scales the strength of gravity.</p>
     <p><span class="highlight">ε (softening):</span> Prevents unrealistically large accelerations during close encounters.</p>
     <p><span class="highlight">Δt:</span> Time step; decreasing it improves accuracy.</p>
-    <p><span class="highlight">Sub‑steps per frame:</span> Divides Δt into smaller increments for better accuracy without slowing visual playback.</p>
+    <p><span class="highlight">Sub-steps per frame:</span> Divides Δt into smaller increments for better accuracy without slowing visual playback.</p>
     <p><span class="highlight">Inject Black Hole:</span> Transforms the farthest particle into a supermassive black hole.</p>
   `,
     middle: `
     <p>A computer model of a galaxy, explained with <strong>Algebra I & II</strong> and introductory physical science. No calculus needed!</p>
-    <h3>GRAVITY: THE INVERSE‑SQUARE LAW</h3>
-    <p>The gravitational force between two objects depends on their masses and the distance. If you double the distance, the force falls to one‑quarter. That is an <span class="highlight">inverse‑square relationship</span>.</p>
+    <h3>GRAVITY: THE INVERSE-SQUARE LAW</h3>
+    <p>The gravitational force between two objects depends on their masses and the distance. If you double the distance, the force falls to one-quarter. That is an <span class="highlight">inverse-square relationship</span>.</p>
     <div class="equation">${renderFormula(eq.F_basic)}</div>
     <p>In the simulation, every star pulls on every other star. The computer adds up all these individual pulls to find the <span class="highlight">net force</span> on each star, which then determines how it accelerates.</p>
     <h3>FROM FORCE TO MOTION</h3>
@@ -266,7 +266,7 @@ export const explanations = {
     <p><span class="highlight">G:</span> Strength of gravity.</p>
     <p><span class="highlight">ε (softening):</span> Smooths out close encounters.</p>
     <p><span class="highlight">Δt:</span> Size of each time nudge; smaller gives smoother motion.</p>
-    <p><span class="highlight">Inject Black Hole:</span> Creates a super‑heavy object that warps nearby orbits.</p>
+    <p><span class="highlight">Inject Black Hole:</span> Creates a super-heavy object that warps nearby orbits.</p>
   `,
     basic: `
     <p>Watch stars orbit under gravity! No math required – just play and explore.</p>
@@ -277,14 +277,14 @@ export const explanations = {
     <h3>HOW DOES THE SIMULATION MOVE STARS?</h3>
     <p>The computer looks at all stars, calculates how hard they pull on each other, and nudges each star by a tiny amount. It does this over and over, like a flipbook, to create smooth motion.</p>
     <h3>THE HEAVY STAR IN THE MIDDLE</h3>
-    <p>A very heavy star sits at the centre, like in a real galaxy. A black hole picture appears only when a star gets extremely heavy (above 50,000). Pressing <span class="highlight">"Inject Black Hole"</span> makes the farthest star super‑heavy, which can throw other stars outward.</p>
+    <p>A very heavy star sits at the centre, like in a real galaxy. A black hole picture appears only when a star gets extremely heavy (above 50,000). Pressing <span class="highlight">"Inject Black Hole"</span> makes the farthest star super-heavy, which can throw other stars outward.</p>
     <h3>SLIDERS & BUTTONS</h3>
     <p><span class="highlight">G:</span> Strength of gravity.</p>
     <p><span class="highlight">ε (epsilon):</span> Prevents stars from shooting away when too close.</p>
     <p><span class="highlight">Δt (delta t):</span> Size of the nudges; larger = faster but jerkier.</p>
-    <p><span class="highlight">Inject Black Hole:</span> Creates a super‑heavy star in the outer galaxy.</p>
+    <p><span class="highlight">Inject Black Hole:</span> Creates a super-heavy star in the outer galaxy.</p>
     <h3>COLORS</h3>
-    <p>Stars glow with warm yellow‑white colours when moving slowly, and become bright blue‑white when moving very fast. The colours come from a map inspired by thermal (black‑body) radiation – hotter = bluer, cooler = more yellow.</p>
+    <p>Stars glow with warm yellow-white colours when moving slowly, and become bright blue-white when moving very fast. The colours come from a map inspired by thermal (black-body) radiation – hotter = bluer, cooler = more yellow.</p>
   `,
     tech: `
     <h3>RENDERING & VISUALS</h3>
