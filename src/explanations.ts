@@ -215,14 +215,14 @@ export const explanations = {
     <div class="equation">${renderFormula(eq.force_soft)}</div>
     <p>This keeps the integration stable without affecting large-scale dynamics.</p>
     <h3>GALACTIC NUCLEUS & BLACK HOLE INJECTION</h3>
-    <p>A central <strong>nucleus particle</strong> of mass 20,000 sits at the origin and is held fixed (immovable under disc forces) to prevent drift. This represents the dense star cluster or seed black hole found in real galaxies. The visual black hole sprite only appears when a particle’s mass exceeds 50,000 – the nucleus alone is below this threshold, so no sprite is shown initially.</p>
+    <p>A central <strong>nucleus particle</strong> of mass 20,000 sits at the origin and is held fixed (immovable under disc forces) to prevent drift. This represents the dense star cluster or seed black hole found in real galaxies. The visual black hole sprite only appears when a particle’s mass exceeds 50,000 - the nucleus alone is below this threshold, so no sprite is shown initially.</p>
     <p>Clicking <span class="highlight">"Inject Black Hole"</span> turns the farthest particle into a supermassive black hole with mass <span class="highlight">Singular Mass</span> (default 150,000). Its velocity is zeroed, and the nucleus is unfrozen so both objects feel each other's gravity. This creates a dramatic merger event, often ejecting nearby stars via the gravitational slingshot effect.</p>
     <h3>ENERGY & STABILITY MONITORING</h3>
     <p>Total mechanical energy is computed on-the-fly by a dedicated web worker:</p>
     <div class="equation">${renderFormula(eq.energy)}</div>
     <p>The percentage change since the last reset is displayed as <span class="highlight">Energy Drift</span>. A well-tuned leapfrog run with ε=10 and 2 substeps typically drifts less than 0.01% per thousand steps.</p>
     <h3>PARALLEL & GPU ACCELERATION</h3>
-    <p>The ${renderInline("O(N^2)")} force calculation is the bottleneck. On <strong>WebGPU-capable browsers</strong> (Chrome, Edge, Safari) the entire integration – acceleration, half-kick, drift – runs on the GPU via custom WGSL compute shaders. All substeps are encoded into a single command buffer, minimising CPU-GPU synchronisation overhead. On unsupported browsers, the simulation falls back to a multi-threaded CPU implementation using <span class="highlight">Web Workers</span> and <span class="highlight">SharedArrayBuffer</span>. Both paths produce identical, exact results – the GPU simply delivers a dramatic speed-up, allowing smooth playback at higher particle counts (up to 20,000+).</p>
+    <p>The ${renderInline("O(N^2)")} force calculation is the bottleneck. On <strong>WebGPU-capable browsers</strong> (Chrome, Edge, Safari) the entire integration - acceleration, half-kick, drift - runs on the GPU via custom WGSL compute shaders. All substeps are encoded into a single command buffer, minimising CPU-GPU synchronisation overhead. On unsupported browsers, the simulation falls back to a multi-threaded CPU implementation using <span class="highlight">Web Workers</span> and <span class="highlight">SharedArrayBuffer</span>. Both paths produce identical, exact results - the GPU simply delivers a dramatic speed-up, allowing smooth playback at higher particle counts (up to 20,000+).</p>
   `,
     intermediate: `
     <p>A multi-threaded particle simulation designed for <strong>AP Physics 1</strong> and <strong>AP Calculus AB</strong>. The core concepts are presented without vector calculus notation, though the underlying engine uses full 3D vectors.</p>
@@ -233,7 +233,7 @@ export const explanations = {
     <div class="equation">${renderFormula(eq.accel)}</div>
     <p>Because the forces change continuously as positions change, we cannot solve for position vs. time with a simple formula.</p>
     <h3>CALCULUS (AP Calculus AB)</h3>
-    <p>Acceleration is the derivative of velocity, and velocity is the derivative of position. To find the motion, we use <span class="highlight">numerical integration</span>: break time into tiny intervals ${renderInline("\\Delta t")} and assume the acceleration is nearly constant during each interval. This is like a Riemann sum – we add up many small changes to approximate the true motion.</p>
+    <p>Acceleration is the derivative of velocity, and velocity is the derivative of position. To find the motion, we use <span class="highlight">numerical integration</span>: break time into tiny intervals ${renderInline("\\Delta t")} and assume the acceleration is nearly constant during each interval. This is like a Riemann sum - we add up many small changes to approximate the true motion.</p>
     <p>The <span class="highlight">Leapfrog method</span> improves accuracy by evaluating velocity at the midpoint of each step, giving much better energy conservation than the basic Euler method.</p>
     <div class="equation">${renderFormula(eq.v_half)}</div>
     <div class="equation">${renderFormula(eq.x_new)}</div>
@@ -257,7 +257,7 @@ export const explanations = {
     <p>From ${renderInline("F = ma")} we get acceleration. Then we update velocity and position over a tiny time step ${renderInline("\\Delta t")} (about 0.016 seconds):</p>
     <div class="equation">${renderFormula(eq.velocity_update)}</div>
     <div class="equation">${renderFormula(eq.position_update)}</div>
-    <p>This repeats hundreds of times per second – like a flipbook – to create smooth motion. Adding up these tiny changes is called <span class="highlight">numerical integration</span>.</p>
+    <p>This repeats hundreds of times per second - like a flipbook - to create smooth motion. Adding up these tiny changes is called <span class="highlight">numerical integration</span>.</p>
     <h3>WHY SOFTENING?</h3>
     <p>When stars get extremely close, the force would become enormous. We add a small number ε (epsilon) to the distance to keep everything stable and realistic.</p>
     <h3>GALAXY CENTER</h3>
@@ -269,7 +269,7 @@ export const explanations = {
     <p><span class="highlight">Inject Black Hole:</span> Creates a super-heavy object that warps nearby orbits.</p>
   `,
     basic: `
-    <p>Watch stars orbit under gravity! No math required – just play and explore.</p>
+    <p>Watch stars orbit under gravity! No math required - just play and explore.</p>
     <h3>WHAT IS GRAVITY?</h3>
     <p>Gravity pulls things together. <span class="highlight">More mass = stronger pull. Closer together = stronger pull.</span></p>
     <div class="equation">${renderFormula(eq.F_basic, true)}</div>
@@ -284,7 +284,7 @@ export const explanations = {
     <p><span class="highlight">Δt (delta t):</span> Size of the nudges; larger = faster but jerkier.</p>
     <p><span class="highlight">Inject Black Hole:</span> Creates a super-heavy star in the outer galaxy.</p>
     <h3>COLORS</h3>
-    <p>Stars glow with warm yellow-white colours when moving slowly, and become bright blue-white when moving very fast. The colours come from a map inspired by thermal (black-body) radiation – hotter = bluer, cooler = more yellow.</p>
+    <p>Stars glow with warm yellow-white colours when moving slowly, and become bright blue-white when moving very fast. The colours come from a map inspired by thermal (black-body) radiation - hotter = bluer, cooler = more yellow.</p>
   `,
     tech: `
     <h3>RENDERING & VISUALS</h3>
