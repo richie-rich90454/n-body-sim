@@ -1,10 +1,16 @@
 import { STRIDE } from "../math/PhysicsEngine";
+import {
+    applyFirstHalfKickAndDrift,
+    applySecondHalfKick,
+    applyYoshida4KickDrift,
+} from "./leapfrog";
 
 interface StepConfig {
     G: number;
     DT: number;
     SOFTENING: number;
     STEPS: number;
+    INTEGRATOR: "leapfrog" | "yoshida4";
 }
 
 export class SimulationManager {
@@ -22,6 +28,7 @@ export class SimulationManager {
     private stepInProgress = false;
     private accelArray: Float32Array;
     private count: number;
+    private integrator: "leapfrog" | "yoshida4" = "leapfrog";
 
     constructor(initialData: Float32Array, workerCount: number) {
         this.count = initialData.length / STRIDE;
@@ -60,32 +67,37 @@ export class SimulationManager {
     }
 
     private onPhaseComplete() {
-        if (this.stepPhase === 0) {
-            const subDt = this.subDt;
-            for (let i = 0; i < this.count; i++) {
-                const i7 = i * STRIDE;
-                const ax = this.accelArray[i * 3];
-                const ay = this.accelArray[i * 3 + 1];
-                const az = this.accelArray[i * 3 + 2];
-                this.particleData[i7 + 3] += ax * subDt * 0.5;
-                this.particleData[i7 + 4] += ay * subDt * 0.5;
-                this.particleData[i7 + 5] += az * subDt * 0.5;
-                this.particleData[i7] += this.particleData[i7 + 3] * subDt;
-                this.particleData[i7 + 1] += this.particleData[i7 + 4] * subDt;
-                this.particleData[i7 + 2] += this.particleData[i7 + 5] * subDt;
+        const maxPhase = this.integrator === "yoshida4" ? 3 : 1;
+        if (this.stepPhase < maxPhase) {
+            if (this.integrator === "yoshida4") {
+                applyYoshida4KickDrift(
+                    this.particleData,
+                    this.accelArray,
+                    this.count,
+                    this.subDt,
+                    this.stepPhase,
+                );
+            } else {
+                applyFirstHalfKickAndDrift(
+                    this.particleData,
+                    this.accelArray,
+                    this.count,
+                    this.subDt,
+                );
             }
-            this.stepPhase = 1;
+            this.stepPhase++;
             this.dispatchAccelWorkers();
         } else {
-            const subDt = this.subDt;
-            for (let i = 0; i < this.count; i++) {
-                const i7 = i * STRIDE;
-                const ax = this.accelArray[i * 3];
-                const ay = this.accelArray[i * 3 + 1];
-                const az = this.accelArray[i * 3 + 2];
-                this.particleData[i7 + 3] += ax * subDt * 0.5;
-                this.particleData[i7 + 4] += ay * subDt * 0.5;
-                this.particleData[i7 + 5] += az * subDt * 0.5;
+            if (this.integrator === "yoshida4") {
+                applyYoshida4KickDrift(
+                    this.particleData,
+                    this.accelArray,
+                    this.count,
+                    this.subDt,
+                    this.stepPhase,
+                );
+            } else {
+                applySecondHalfKick(this.particleData, this.accelArray, this.count, this.subDt);
             }
             this.stepIndex++;
             if (this.stepIndex < this.stepConfig!.STEPS) {
@@ -129,6 +141,7 @@ export class SimulationManager {
         this.stepInProgress = true;
         this.stepIndex = 0;
         this.subDt = config.DT / config.STEPS;
+        this.integrator = config.INTEGRATOR;
         this.startSubStep();
     }
 
