@@ -23,7 +23,7 @@ export interface WebGPUForce {
 }
 
 export async function createWebGPUForce(
-    particleData: SharedArrayBuffer,
+    particleData: ArrayBuffer,
     count: number,
 ): Promise<WebGPUForce | null> {
     if (!("gpu" in navigator)) return null;
