@@ -29,12 +29,19 @@ export class SimulationManager {
     private accelArray: Float32Array;
     private count: number;
     private integrator: "leapfrog" | "yoshida4" = "leapfrog";
+    private useSharedMemory: boolean;
 
     constructor(initialData: Float32Array, workerCount: number) {
         this.count = initialData.length / STRIDE;
-        const sab = new SharedArrayBuffer(initialData.length * Float32Array.BYTES_PER_ELEMENT);
-        this.particleData = new Float32Array(sab);
-        this.particleData.set(initialData);
+        this.useSharedMemory =
+            typeof SharedArrayBuffer !== "undefined" && window.crossOriginIsolated === true;
+        if (this.useSharedMemory) {
+            const sab = new SharedArrayBuffer(initialData.length * Float32Array.BYTES_PER_ELEMENT);
+            this.particleData = new Float32Array(sab);
+            this.particleData.set(initialData);
+        } else {
+            this.particleData = new Float32Array(initialData);
+        }
         this.accelArray = new Float32Array(this.count * 3);
 
         for (let i = 0; i < workerCount; i++) {
@@ -42,7 +49,9 @@ export class SimulationManager {
                 type: "module",
             });
             worker.onmessage = this.handleWorkerMessage.bind(this);
-            worker.postMessage({ type: "init", buffer: sab });
+            if (this.useSharedMemory) {
+                worker.postMessage({ type: "init", buffer: this.particleData.buffer });
+            }
             this.workers.push(worker);
         }
     }
@@ -125,14 +134,26 @@ export class SimulationManager {
             const endIdx = Math.min(startIdx + chunkSize, this.count);
             if (startIdx >= this.count) continue;
             this.busyWorkers++;
-            this.workers[w].postMessage({
-                type: "accel",
-                startIdx,
-                endIdx,
-                count: this.count,
-                G: config.G,
-                softeningSq: config.SOFTENING * config.SOFTENING,
-            });
+            if (this.useSharedMemory) {
+                this.workers[w].postMessage({
+                    type: "accel",
+                    startIdx,
+                    endIdx,
+                    count: this.count,
+                    G: config.G,
+                    softeningSq: config.SOFTENING * config.SOFTENING,
+                });
+            } else {
+                this.workers[w].postMessage({
+                    type: "accel",
+                    startIdx,
+                    endIdx,
+                    count: this.count,
+                    G: config.G,
+                    softeningSq: config.SOFTENING * config.SOFTENING,
+                    particles: this.particleData,
+                });
+            }
         }
     }
 
@@ -152,17 +173,21 @@ export class SimulationManager {
 
     private finishReset() {
         if (this.newDataAfterReset) {
-            const sab = new SharedArrayBuffer(
-                this.newDataAfterReset.length * Float32Array.BYTES_PER_ELEMENT,
-            );
-            this.particleData = new Float32Array(sab);
-            this.particleData.set(this.newDataAfterReset);
+            if (this.useSharedMemory) {
+                const sab = new SharedArrayBuffer(
+                    this.newDataAfterReset.length * Float32Array.BYTES_PER_ELEMENT,
+                );
+                this.particleData = new Float32Array(sab);
+                this.particleData.set(this.newDataAfterReset);
+                for (const w of this.workers) {
+                    w.postMessage({ type: "init", buffer: sab });
+                }
+            } else {
+                this.particleData = new Float32Array(this.newDataAfterReset);
+            }
             this.count = this.particleData.length / STRIDE;
             this.accelArray = new Float32Array(this.count * 3);
             this.newDataAfterReset = null;
-            for (const w of this.workers) {
-                w.postMessage({ type: "init", buffer: sab });
-            }
         }
         this.resetRequested = false;
         this.stepInProgress = false;
