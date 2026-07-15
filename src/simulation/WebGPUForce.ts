@@ -94,14 +94,21 @@ export async function createWebGPUForce(
 @group(0) @binding(3) var<uniform> params: vec4<f32>;   // x=G, y=softeningSq, z=dt, w=dtHalf
 const STRIDE = 7u;
 const TILE_SIZE = ${TILE_SIZE}u;
+var<workgroup> tilePos: array<f32, ${TILE_SIZE * 3}u>;
+var<workgroup> tileMass: array<f32, ${TILE_SIZE}u>;
 @compute @workgroup_size(256,1,1)
-fn main(@builtin(global_invocation_id) id: vec3<u32>) {
+fn main(@builtin(global_invocation_id) id: vec3<u32>,
+        @builtin(local_invocation_id) lid: vec3<u32>) {
     let i = id.x;
-    if (i >= ${count}u) { return; }
+    let localIdx = lid.x;
+    let valid = i < ${count}u;
 
-    var px = particles[i*STRIDE];
-    var py = particles[i*STRIDE+1u];
-    var pz = particles[i*STRIDE+2u];
+    var px = 0.0; var py = 0.0; var pz = 0.0;
+    if (valid) {
+        px = particles[i*STRIDE];
+        py = particles[i*STRIDE+1u];
+        pz = particles[i*STRIDE+2u];
+    }
 
     var ax = 0.0; var ay = 0.0; var az = 0.0;
     let G = params.x;
@@ -109,24 +116,43 @@ fn main(@builtin(global_invocation_id) id: vec3<u32>) {
 
     let numTiles = (${count}u + TILE_SIZE - 1u) / TILE_SIZE;
     for (var t = 0u; t < numTiles; t++) {
-        for (var jj = 0u; jj < TILE_SIZE; jj++) {
-            let j = t*TILE_SIZE + jj;
-            if (j >= ${count}u) { break; }
-            if (i == j) { continue; }
-
-            let dx = particles[j*STRIDE] - px;
-            let dy = particles[j*STRIDE+1u] - py;
-            let dz = particles[j*STRIDE+2u] - pz;
-            let mj = particles[j*STRIDE+6u];
-            let distSq = dx*dx + dy*dy + dz*dz + softeningSq;
-            let invDist = 1.0 / sqrt(distSq);
-            let factor = G * mj * invDist * invDist * invDist;
-            ax = ax + dx*factor;
-            ay = ay + dy*factor;
-            az = az + dz*factor;
+        let jLoad = t * TILE_SIZE + localIdx;
+        if (jLoad < ${count}u) {
+            tilePos[localIdx * 3u] = particles[jLoad * STRIDE];
+            tilePos[localIdx * 3u + 1u] = particles[jLoad * STRIDE + 1u];
+            tilePos[localIdx * 3u + 2u] = particles[jLoad * STRIDE + 2u];
+            tileMass[localIdx] = particles[jLoad * STRIDE + 6u];
+        } else {
+            tilePos[localIdx * 3u] = 0.0;
+            tilePos[localIdx * 3u + 1u] = 0.0;
+            tilePos[localIdx * 3u + 2u] = 0.0;
+            tileMass[localIdx] = 0.0;
         }
+        workgroupBarrier();
+
+        if (valid) {
+            for (var jj = 0u; jj < TILE_SIZE; jj++) {
+                let j = t * TILE_SIZE + jj;
+                if (j >= ${count}u) { break; }
+                if (i == j) { continue; }
+
+                let dx = tilePos[jj * 3u] - px;
+                let dy = tilePos[jj * 3u + 1u] - py;
+                let dz = tilePos[jj * 3u + 2u] - pz;
+                let mj = tileMass[jj];
+                let distSq = dx*dx + dy*dy + dz*dz + softeningSq;
+                let invDist = 1.0 / sqrt(distSq);
+                let factor = G * mj * invDist * invDist * invDist;
+                ax = ax + dx*factor;
+                ay = ay + dy*factor;
+                az = az + dz*factor;
+            }
+        }
+        workgroupBarrier();
     }
-    accel[i*3u]=ax; accel[i*3u+1u]=ay; accel[i*3u+2u]=az;
+    if (valid) {
+        accel[i*3u]=ax; accel[i*3u+1u]=ay; accel[i*3u+2u]=az;
+    }
 }
 `;
 
