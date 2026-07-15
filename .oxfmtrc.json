@@ -27,6 +27,7 @@
         ".idea/",
         "*.log",
         "*.tmp",
-        "public/clubs.json"
+        "public/clubs.json",
+        ".trae/"
     ]
 }
