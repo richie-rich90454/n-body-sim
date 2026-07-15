@@ -10,6 +10,10 @@ self.onmessage = (e: MessageEvent) => {
         allData = new Float32Array(msg.buffer);
         return;
     }
+    if (msg.type === "data") {
+        allData = msg.particles;
+        return;
+    }
     if (msg.type === "params") {
         G = msg.G;
         softeningSq = msg.softeningSq;
