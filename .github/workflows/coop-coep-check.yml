@@ -1,0 +1,31 @@
+name: COOP/COEP Header Check
+
+on:
+    push:
+        branches: [main]
+    pull_request:
+        branches: [main]
+
+jobs:
+    check-headers:
+        runs-on: ubuntu-latest
+        steps:
+            - name: Check COOP/COEP headers on deployment
+              run: |
+                  if [ -z "${{ secrets.DEPLOY_URL }}" ]; then
+                    echo "DEPLOY_URL secret not set; skipping header check"
+                    exit 0
+                  fi
+                  URL="${{ secrets.DEPLOY_URL }}"
+                  echo "Checking headers on $URL"
+                  coop=$(curl -sI "$URL" | grep -i "cross-origin-opener-policy" || true)
+                  coep=$(curl -sI "$URL" | grep -i "cross-origin-embedder-policy" || true)
+                  if [ -z "$coop" ]; then
+                    echo "FAIL: Cross-Origin-Opener-Policy header missing"
+                    exit 1
+                  fi
+                  if [ -z "$coep" ]; then
+                    echo "FAIL: Cross-Origin-Embedder-Policy header missing"
+                    exit 1
+                  fi
+                  echo "PASS: both COOP and COEP headers present"
