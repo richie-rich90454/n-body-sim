@@ -19,6 +19,7 @@ A high‑performance N‑body particle simulation implemented in TypeScript, emp
 - [Energy Drift Monitoring](#energy-drift-monitoring)
 - [Project Structure](#project-structure)
 - [Installation and Usage](#installation-and-usage)
+- [Cross-Origin Isolation (COOP/COEP)](#cross-origin-isolation-coopcoep)
 - [Technology Stack](#technology-stack)
 - [License](#license)
 
@@ -281,6 +282,71 @@ npm run preview  # serve the production build locally
 ```
 
 Open the provided URL in a browser. Use mouse/trackpad to rotate, zoom, and pan. The lil‑gui panel on the right provides real‑time control over all parameters. The top‑left information button opens a detailed explanation panel with multiple reading levels.
+
+---
+
+## Cross-Origin Isolation (COOP/COEP)
+
+The CPU physics fallback path uses `SharedArrayBuffer` so that multiple Web Workers can read and write the same particle data without copying. Browsers only expose `SharedArrayBuffer` when the document is **cross-origin isolated**, which requires the deployment server to send these HTTP headers on every response:
+
+```
+Cross-Origin-Opener-Policy: same-origin
+Cross-Origin-Embedder-Policy: require-corp
+```
+
+When both headers are present, `self.crossOriginIsolated` evaluates to `true` and `SharedArrayBuffer` becomes available. If the headers are missing on a production deployment, the simulation automatically falls back to a slower non-shared CPU mode (the runtime fallback), so the app still runs — but with reduced multi-threaded performance. WebGPU acceleration is unaffected.
+
+### Vite dev server
+
+The dev server is already configured in `vite.config.ts`, so `npm run dev` / `bun run dev` works out of the box:
+
+```ts
+server: {
+    headers: {
+        "Cross-Origin-Opener-Policy": "same-origin",
+        "Cross-Origin-Embedder-Policy": "require-corp",
+    },
+}
+```
+
+### Static hosts
+
+For static hosts that read a `_headers` or `headers` config file, add the two headers to all routes.
+
+**Netlify** (`public/_headers`):
+
+```
+/*
+  Cross-Origin-Opener-Policy: same-origin
+  Cross-Origin-Embedder-Policy: require-corp
+```
+
+**Vercel** (`vercel.json`):
+
+```json
+{
+    "headers": [
+        {
+            "source": "/(.*)",
+            "headers": [
+                { "key": "Cross-Origin-Opener-Policy", "value": "same-origin" },
+                { "key": "Cross-Origin-Embedder-Policy", "value": "require-corp" }
+            ]
+        }
+    ]
+}
+```
+
+### nginx
+
+```nginx
+add_header Cross-Origin-Opener-Policy "same-origin" always;
+add_header Cross-Origin-Embedder-Policy "require-corp" always;
+```
+
+### GitHub Pages caveat
+
+GitHub Pages does **not** support custom HTTP headers, so a `github.io` deployment cannot be cross-origin isolated. For full CPU multi-threaded performance, deploy to a host that allows custom headers (Netlify, Vercel, Cloudflare Pages, nginx, etc.). The simulation still works on GitHub Pages through the non-shared fallback.
 
 ---
 
