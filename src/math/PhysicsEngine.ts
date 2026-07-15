@@ -85,5 +85,39 @@ export function initializeGalaxy(
         data[idx + 5] = vZ;
         data[idx + 6] = uniformMass;
     }
+
+    let totalMass = 0;
+    let cx = 0,
+        cy = 0,
+        cz = 0;
+    let cvx = 0,
+        cvy = 0,
+        cvz = 0;
+    for (let i = 0; i < particleCount; i++) {
+        const idx = i * STRIDE;
+        const m = data[idx + 6];
+        totalMass += m;
+        cx += m * data[idx];
+        cy += m * data[idx + 1];
+        cz += m * data[idx + 2];
+        cvx += m * data[idx + 3];
+        cvy += m * data[idx + 4];
+        cvz += m * data[idx + 5];
+    }
+    cx /= totalMass;
+    cy /= totalMass;
+    cz /= totalMass;
+    cvx /= totalMass;
+    cvy /= totalMass;
+    cvz /= totalMass;
+    for (let i = 0; i < particleCount; i++) {
+        const idx = i * STRIDE;
+        data[idx] -= cx;
+        data[idx + 1] -= cy;
+        data[idx + 2] -= cz;
+        data[idx + 3] -= cvx;
+        data[idx + 4] -= cvy;
+        data[idx + 5] -= cvz;
+    }
     return data;
 }
