@@ -68,13 +68,21 @@ export function initializeGalaxy(
         data[idx + 2] = z;
 
         const vc = vCirc(r);
-        const vx = -vc * Math.sin(theta);
-        const vy = vc * Math.cos(theta);
-        const vz = 0;
+        const sigmaR = 0.18 * vc;
+        const sigmaT = sigmaR * 0.7071067811865475;
+        const sigmaZ = 0.08 * vc;
+        const cosT = Math.cos(theta);
+        const sinT = Math.sin(theta);
+        const vRadial = gauss(sigmaR);
+        const vTang = gauss(sigmaT);
+        const vZ = gauss(sigmaZ);
+
+        const vx = -vc * sinT + cosT * vRadial + -sinT * vTang;
+        const vy = vc * cosT + sinT * vRadial + cosT * vTang;
 
         data[idx + 3] = vx;
         data[idx + 4] = vy;
-        data[idx + 5] = vz;
+        data[idx + 5] = vZ;
         data[idx + 6] = uniformMass;
     }
     return data;
