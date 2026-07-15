@@ -12,7 +12,9 @@
         "format:js": "oxfmt --write \"**/*.{js,jsx,ts,tsx}\"",
         "format:html": "oxfmt --write \"**/*.html\"",
         "format:css": "oxfmt --write \"**/*.css\"",
-        "format:json": "oxfmt --write \"**/*.json\""
+        "format:json": "oxfmt --write \"**/*.json\"",
+        "test": "vitest run",
+        "test:watch": "vitest"
     },
     "keywords": [],
     "author": "richie-rich90454",
@@ -33,7 +35,8 @@
         "@webgpu/types": "^0.1.71",
         "oxfmt": "^0.59.0",
         "typescript": "^7.0.2",
-        "vite": "^8.1.4"
+        "vite": "^8.1.4",
+        "vitest": "^4.1.10"
     },
     "overrides": {
         "dompurify": "^3.4.12"
