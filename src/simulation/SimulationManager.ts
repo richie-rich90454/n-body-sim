@@ -41,14 +41,17 @@ export class SimulationManager {
     }
 
     private handleWorkerMessage(e: MessageEvent) {
-        const { accel, startIdx } = e.data;
+        const { accel } = e.data;
         if (this.resetRequested) {
             this.busyWorkers--;
             if (this.busyWorkers === 0) this.finishReset();
             return;
         }
         if (accel && accel.length > 0) {
-            this.accelArray.set(accel, startIdx * 3);
+            const n = accel.length;
+            for (let k = 0; k < n; k++) {
+                this.accelArray[k] += accel[k];
+            }
         }
         this.busyWorkers--;
         if (this.busyWorkers === 0) {
@@ -104,6 +107,7 @@ export class SimulationManager {
         const workerCount = this.workers.length;
         const chunkSize = Math.ceil(this.count / workerCount);
         this.busyWorkers = 0;
+        this.accelArray.fill(0);
         for (let w = 0; w < workerCount; w++) {
             const startIdx = w * chunkSize;
             const endIdx = Math.min(startIdx + chunkSize, this.count);
