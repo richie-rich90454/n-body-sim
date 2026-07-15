@@ -12,6 +12,7 @@ export interface SimConfig {
     isPaused: boolean;
     autoRotate: boolean;
     particleCount: number;
+    seed: number;
     injectBlackHole: () => void;
     resetGalaxy: () => void;
 }
@@ -118,6 +119,14 @@ export class UIController {
         this.addTooltip(
             countCtrl,
             "Number of star particles; changing this resets the simulation (default 6000)",
+        );
+        const seedCtrl = sim
+            .add(this.config, "seed", 1, 99999, 1)
+            .name("Random Seed")
+            .onChange(() => this.config.resetGalaxy());
+        this.addTooltip(
+            seedCtrl,
+            "Seed for the deterministic galaxy initialisation; changing this resets the simulation (default 12345)",
         );
     }
 }

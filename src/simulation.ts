@@ -22,6 +22,7 @@ export const config: SimConfig = {
     isPaused: false,
     autoRotate: true,
     particleCount: 6000,
+    seed: 12345,
     injectBlackHole: () => {},
     resetGalaxy: () => {},
 };
@@ -114,7 +115,7 @@ export async function createSimulation(particleCount: number) {
         simManager = null;
     }
 
-    const initialData = initializeGalaxy(particleCount, GALAXY_RADIUS);
+    const initialData = initializeGalaxy(particleCount, GALAXY_RADIUS, config.seed);
     const workerCount = navigator.hardwareConcurrency || 4;
 
     const gpuForce = await createWebGPUForce(
