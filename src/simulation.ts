@@ -99,6 +99,31 @@ function resetEnergyBaseline() {
     requestEnergyCalculation();
 }
 
+function applyBlackHoleInjection(): void {
+    if (!pendingInjection) return;
+    const index = pendingInjection.index;
+    const mass = pendingInjection.mass;
+    blackHoleIndex = index;
+    blackHoleActive = true;
+    renderBuffer[index * STRIDE + 6] = mass;
+    renderBuffer[index * STRIDE + 3] = 0;
+    renderBuffer[index * STRIDE + 4] = 0;
+    renderBuffer[index * STRIDE + 5] = 0;
+    physicsBuffer[index * STRIDE + 6] = mass;
+    physicsBuffer[index * STRIDE + 3] = 0;
+    physicsBuffer[index * STRIDE + 4] = 0;
+    physicsBuffer[index * STRIDE + 5] = 0;
+    if (!useGPU && simManager) {
+        simManager.setParticleMass(index, mass);
+        simManager.particleData[index * STRIDE + 3] = 0;
+        simManager.particleData[index * STRIDE + 4] = 0;
+        simManager.particleData[index * STRIDE + 5] = 0;
+        simManager.reset(simManager.particleData);
+    }
+    pendingInjection = null;
+    resetEnergyBaseline();
+}
+
 async function destroyWebGPU() {
     if (webgpuForce) {
         const { device } = webgpuForce;
@@ -188,26 +213,7 @@ export async function stepOnce(): Promise<void> {
     const softSq = config.softeningEpsilon * config.softeningEpsilon;
 
     if (pendingInjection) {
-        const { index, mass } = pendingInjection;
-        blackHoleIndex = index;
-        blackHoleActive = true;
-        renderBuffer[index * STRIDE + 6] = mass;
-        renderBuffer[index * STRIDE + 3] = 0;
-        renderBuffer[index * STRIDE + 4] = 0;
-        renderBuffer[index * STRIDE + 5] = 0;
-        physicsBuffer[index * STRIDE + 6] = mass;
-        physicsBuffer[index * STRIDE + 3] = 0;
-        physicsBuffer[index * STRIDE + 4] = 0;
-        physicsBuffer[index * STRIDE + 5] = 0;
-        if (!useGPU && simManager) {
-            simManager.setParticleMass(index, mass);
-            simManager.particleData[index * STRIDE + 3] = 0;
-            simManager.particleData[index * STRIDE + 4] = 0;
-            simManager.particleData[index * STRIDE + 5] = 0;
-            simManager.reset(simManager.particleData);
-        }
-        pendingInjection = null;
-        resetEnergyBaseline();
+        applyBlackHoleInjection();
         gpuNeedsUpload = true;
     }
 
@@ -301,26 +307,7 @@ export function animationLoop() {
         const softSq = config.softeningEpsilon * config.softeningEpsilon;
 
         if (pendingInjection) {
-            const { index, mass } = pendingInjection;
-            blackHoleIndex = index;
-            blackHoleActive = true;
-            renderBuffer[index * STRIDE + 6] = mass;
-            renderBuffer[index * STRIDE + 3] = 0;
-            renderBuffer[index * STRIDE + 4] = 0;
-            renderBuffer[index * STRIDE + 5] = 0;
-            physicsBuffer[index * STRIDE + 6] = mass;
-            physicsBuffer[index * STRIDE + 3] = 0;
-            physicsBuffer[index * STRIDE + 4] = 0;
-            physicsBuffer[index * STRIDE + 5] = 0;
-            if (!useGPU && simManager) {
-                simManager.setParticleMass(index, mass);
-                simManager.particleData[index * STRIDE + 3] = 0;
-                simManager.particleData[index * STRIDE + 4] = 0;
-                simManager.particleData[index * STRIDE + 5] = 0;
-                simManager.reset(simManager.particleData);
-            }
-            pendingInjection = null;
-            resetEnergyBaseline();
+            applyBlackHoleInjection();
             gpuNeedsUpload = true;
         }
 
