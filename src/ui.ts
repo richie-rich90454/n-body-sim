@@ -72,3 +72,52 @@ export function updateEnergyDisplay(energyDrift: number) {
     const energyEl = document.getElementById("energy-drift");
     if (energyEl) energyEl.innerText = energyDrift.toFixed(4) + "%";
 }
+
+export function showSharedArrayBufferNotice() {
+    if (document.getElementById("sab-notice")) return;
+    if (!document.body) return;
+    const container = document.createElement("div");
+    container.id = "sab-notice";
+    container.setAttribute(
+        "style",
+        [
+            "position: fixed",
+            "bottom: 12px",
+            "right: 12px",
+            "max-width: 320px",
+            "padding: 8px 12px",
+            "background: rgba(20, 20, 30, 0.85)",
+            "color: #ffd9a3",
+            "font: 12px/1.4 ui-monospace, monospace",
+            "border: 1px solid rgba(255, 180, 80, 0.4)",
+            "border-radius: 6px",
+            "z-index: 10000",
+            "box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4)",
+        ].join("; "),
+    );
+    const text = document.createElement("span");
+    text.innerText =
+        "Cross-origin isolation unavailable - CPU physics running in reduced-performance mode. See README for COOP/COEP header setup.";
+    text.setAttribute("style", "display: block; margin-bottom: 6px");
+    container.appendChild(text);
+    const dismiss = document.createElement("button");
+    dismiss.type = "button";
+    dismiss.innerText = "Dismiss";
+    dismiss.setAttribute(
+        "style",
+        [
+            "background: transparent",
+            "border: 1px solid rgba(255, 180, 80, 0.6)",
+            "color: #ffd9a3",
+            "font: inherit",
+            "padding: 2px 8px",
+            "border-radius: 4px",
+            "cursor: pointer",
+        ].join("; "),
+    );
+    dismiss.addEventListener("click", function () {
+        if (container.parentNode) container.parentNode.removeChild(container);
+    });
+    container.appendChild(dismiss);
+    document.body.appendChild(container);
+}
