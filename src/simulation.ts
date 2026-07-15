@@ -16,6 +16,7 @@ export const config: SimConfig = {
     blackHoleMass: 150000,
     timeStep: 0.016,
     integrationSteps: 2,
+    integrator: "leapfrog",
     bloomIntensity: 1.5,
     particleSize: 4.0,
     timeScale: 1.0,
@@ -219,6 +220,7 @@ export async function stepOnce(): Promise<void> {
             subDt,
             subSteps,
             physicsBuffer,
+            config.integrator,
         );
         sanitizeBuffer(physicsBuffer);
         const tmp = renderBuffer;
@@ -233,6 +235,7 @@ export async function stepOnce(): Promise<void> {
             DT: effectiveDt,
             SOFTENING: config.softeningEpsilon,
             STEPS: subSteps,
+            INTEGRATOR: config.integrator,
         });
         physicsBusy = false;
     }
@@ -329,6 +332,7 @@ export function animationLoop() {
                     subDt,
                     subSteps,
                     physicsBuffer,
+                    config.integrator,
                 );
                 sanitizeBuffer(physicsBuffer);
                 const tmp = renderBuffer;
@@ -347,6 +351,7 @@ export function animationLoop() {
             DT: config.timeStep * config.timeScale,
             SOFTENING: config.softeningEpsilon,
             STEPS: config.integrationSteps,
+            INTEGRATOR: config.integrator,
         });
     }
 
