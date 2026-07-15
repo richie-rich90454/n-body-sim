@@ -6,6 +6,7 @@ export interface SimConfig {
     blackHoleMass: number;
     timeStep: number;
     integrationSteps: number;
+    integrator: "leapfrog" | "yoshida4";
     bloomIntensity: number;
     particleSize: number;
     timeScale: number;
@@ -77,6 +78,13 @@ export class UIController {
         this.addTooltip(
             subCtrl,
             "Divides each frame's time step into smaller integration increments (default 2)",
+        );
+        const intCtrl = calc
+            .add(this.config, "integrator", ["leapfrog", "yoshida4"])
+            .name("Integrator");
+        this.addTooltip(
+            intCtrl,
+            "Symplectic integrator: leapfrog is 2nd-order (faster), yoshida4 is 4th-order (more accurate, default leapfrog)",
         );
     }
 
