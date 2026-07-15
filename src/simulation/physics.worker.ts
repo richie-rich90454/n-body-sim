@@ -9,39 +9,37 @@ self.onmessage = (e: MessageEvent) => {
     }
     if (msg.type === "accel") {
         const { startIdx, endIdx, count, G, softeningSq } = msg;
-        const length = endIdx - startIdx;
-        const accel = new Float32Array(length * 3);
-        if (length <= 0) {
-            self.postMessage({ accel, startIdx }, { transfer: [accel.buffer] });
-            return;
-        }
-        let accelIdx = 0;
-        for (let i = startIdx; i < endIdx; i++) {
-            const i7 = i * STRIDE;
-            const px = allData[i7];
-            const py = allData[i7 + 1];
-            const pz = allData[i7 + 2];
-
-            let ax = 0,
-                ay = 0,
-                az = 0;
-            for (let j = 0; j < count; j++) {
-                if (i === j) continue;
-                const j7 = j * STRIDE;
-                const dx = allData[j7] - px;
-                const dy = allData[j7 + 1] - py;
-                const dz = allData[j7 + 2] - pz;
-                const mj = allData[j7 + 6];
-                const distSq = dx * dx + dy * dy + dz * dz + softeningSq;
-                const invDist = 1 / Math.sqrt(distSq);
-                const factor = G * mj * invDist * invDist * invDist;
-                ax += dx * factor;
-                ay += dy * factor;
-                az += dz * factor;
+        const accel = new Float32Array(count * 3);
+        if (endIdx > startIdx && count > 0) {
+            for (let i = startIdx; i < endIdx; i++) {
+                const i7 = i * STRIDE;
+                const px = allData[i7];
+                const py = allData[i7 + 1];
+                const pz = allData[i7 + 2];
+                const mi = allData[i7 + 6];
+                const i3 = i * 3;
+                for (let j = i + 1; j < count; j++) {
+                    const j7 = j * STRIDE;
+                    const dx = allData[j7] - px;
+                    const dy = allData[j7 + 1] - py;
+                    const dz = allData[j7 + 2] - pz;
+                    const mj = allData[j7 + 6];
+                    const distSq = dx * dx + dy * dy + dz * dz + softeningSq;
+                    const invDist = 1 / Math.sqrt(distSq);
+                    const factor = G * mj * invDist * invDist * invDist;
+                    const axc = dx * factor;
+                    const ayc = dy * factor;
+                    const azc = dz * factor;
+                    accel[i3] += axc;
+                    accel[i3 + 1] += ayc;
+                    accel[i3 + 2] += azc;
+                    const j3 = j * 3;
+                    const ratio = mi / mj;
+                    accel[j3] -= axc * ratio;
+                    accel[j3 + 1] -= ayc * ratio;
+                    accel[j3 + 2] -= azc * ratio;
+                }
             }
-            accel[accelIdx++] = ax;
-            accel[accelIdx++] = ay;
-            accel[accelIdx++] = az;
         }
         self.postMessage({ accel, startIdx }, { transfer: [accel.buffer] });
     }
