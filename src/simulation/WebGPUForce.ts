@@ -1,4 +1,5 @@
 import { STRIDE } from "../math/PhysicsEngine";
+import { YOSHIDA4_D1, YOSHIDA4_D2 } from "./leapfrog";
 
 const TILE_SIZE = 256;
 
@@ -225,6 +226,7 @@ export async function computeFullStep(
     subDt: number,
     subSteps: number,
     outResult: Float32Array,
+    integrator: "leapfrog" | "yoshida4" = "leapfrog",
 ): Promise<void> {
     const {
         device,
@@ -243,14 +245,6 @@ export async function computeFullStep(
 
     device.queue.writeBuffer(stateA, 0, particleData);
 
-    uniformWriteArray[0] = G;
-    uniformWriteArray[1] = softeningSq;
-    uniformWriteArray[2] = subDt;
-    uniformWriteArray[3] = subDt * 0.5;
-    device.queue.writeBuffer(uniformBuffer, 0, uniformWriteArray);
-
-    const commandEncoder = device.createCommandEncoder();
-
     const createBindGroup = (srcBuf: GPUBuffer, accBuf: GPUBuffer, dstBuf: GPUBuffer) =>
         device.createBindGroup({
             layout: bindGroupLayout,
@@ -262,45 +256,59 @@ export async function computeFullStep(
             ],
         });
 
+    const weights = integrator === "yoshida4" ? [YOSHIDA4_D1, YOSHIDA4_D2, YOSHIDA4_D1] : [1];
+
     for (let s = 0; s < subSteps; s++) {
-        {
-            const pass = commandEncoder.beginComputePass();
-            pass.setPipeline(accelPipeline);
-            pass.setBindGroup(0, createBindGroup(stateA, stateA, accelBuffer));
-            pass.dispatchWorkgroups(Math.ceil(count / 256), 1, 1);
-            pass.end();
-        }
-        {
-            const pass = commandEncoder.beginComputePass();
-            pass.setPipeline(leapfrog1Pipeline);
-            pass.setBindGroup(0, createBindGroup(stateA, accelBuffer, stateB));
-            pass.dispatchWorkgroups(Math.ceil(count / 256), 1, 1);
-            pass.end();
-        }
-        {
-            const pass = commandEncoder.beginComputePass();
-            pass.setPipeline(accelPipeline);
-            pass.setBindGroup(0, createBindGroup(stateB, stateB, accelBuffer));
-            pass.dispatchWorkgroups(Math.ceil(count / 256), 1, 1);
-            pass.end();
-        }
-        {
-            const pass = commandEncoder.beginComputePass();
-            pass.setPipeline(leapfrog2Pipeline);
-            pass.setBindGroup(0, createBindGroup(stateB, accelBuffer, stateA));
-            pass.dispatchWorkgroups(Math.ceil(count / 256), 1, 1);
-            pass.end();
+        for (let w = 0; w < weights.length; w++) {
+            const curDt = subDt * weights[w];
+            uniformWriteArray[0] = G;
+            uniformWriteArray[1] = softeningSq;
+            uniformWriteArray[2] = curDt;
+            uniformWriteArray[3] = curDt * 0.5;
+            device.queue.writeBuffer(uniformBuffer, 0, uniformWriteArray);
+
+            const commandEncoder = device.createCommandEncoder();
+            {
+                const pass = commandEncoder.beginComputePass();
+                pass.setPipeline(accelPipeline);
+                pass.setBindGroup(0, createBindGroup(stateA, stateA, accelBuffer));
+                pass.dispatchWorkgroups(Math.ceil(count / 256), 1, 1);
+                pass.end();
+            }
+            {
+                const pass = commandEncoder.beginComputePass();
+                pass.setPipeline(leapfrog1Pipeline);
+                pass.setBindGroup(0, createBindGroup(stateA, accelBuffer, stateB));
+                pass.dispatchWorkgroups(Math.ceil(count / 256), 1, 1);
+                pass.end();
+            }
+            {
+                const pass = commandEncoder.beginComputePass();
+                pass.setPipeline(accelPipeline);
+                pass.setBindGroup(0, createBindGroup(stateB, stateB, accelBuffer));
+                pass.dispatchWorkgroups(Math.ceil(count / 256), 1, 1);
+                pass.end();
+            }
+            {
+                const pass = commandEncoder.beginComputePass();
+                pass.setPipeline(leapfrog2Pipeline);
+                pass.setBindGroup(0, createBindGroup(stateB, accelBuffer, stateA));
+                pass.dispatchWorkgroups(Math.ceil(count / 256), 1, 1);
+                pass.end();
+            }
+            device.queue.submit([commandEncoder.finish()]);
         }
     }
 
-    commandEncoder.copyBufferToBuffer(
+    const readbackEncoder = device.createCommandEncoder();
+    readbackEncoder.copyBufferToBuffer(
         stateA,
         0,
         stagingBuffer,
         0,
         count * STRIDE * Float32Array.BYTES_PER_ELEMENT,
     );
-    device.queue.submit([commandEncoder.finish()]);
+    device.queue.submit([readbackEncoder.finish()]);
 
     await stagingBuffer.mapAsync(GPUMapMode.READ);
     const mapped = stagingBuffer.getMappedRange();
