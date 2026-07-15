@@ -256,14 +256,15 @@ fn main(@builtin(global_invocation_id) id: vec3<u32>) {
 
 export async function computeFullStep(
     force: WebGPUForce,
-    particleData: Float32Array,
+    particleData: Float32Array | null,
     G: number,
     softeningSq: number,
     subDt: number,
     subSteps: number,
     outResult: Float32Array,
-    integrator: "leapfrog" | "yoshida4" = "leapfrog",
-): Promise<void> {
+    integrator: "leapfrog" | "yoshida4",
+    synchronous: boolean,
+): Promise<boolean> {
     const {
         device,
         accelPipeline,
@@ -280,7 +281,9 @@ export async function computeFullStep(
         count,
     } = force;
 
-    device.queue.writeBuffer(stateA, 0, particleData);
+    if (particleData !== null) {
+        device.queue.writeBuffer(stateA, 0, particleData);
+    }
 
     const createBindGroup = (srcBuf: GPUBuffer, accBuf: GPUBuffer, dstBuf: GPUBuffer) =>
         device.createBindGroup({
@@ -337,18 +340,45 @@ export async function computeFullStep(
         }
     }
 
-    const readbackEncoder = device.createCommandEncoder();
-    readbackEncoder.copyBufferToBuffer(
-        stateA,
-        0,
-        stagingBufferA,
-        0,
-        count * STRIDE * Float32Array.BYTES_PER_ELEMENT,
-    );
-    device.queue.submit([readbackEncoder.finish()]);
-
-    await stagingBufferA.mapAsync(GPUMapMode.READ);
-    const mapped = stagingBufferA.getMappedRange();
-    outResult.set(new Float32Array(mapped));
-    stagingBufferA.unmap();
+    if (synchronous) {
+        const readbackEncoder = device.createCommandEncoder();
+        readbackEncoder.copyBufferToBuffer(
+            stateA,
+            0,
+            stagingBufferA,
+            0,
+            count * STRIDE * Float32Array.BYTES_PER_ELEMENT,
+        );
+        device.queue.submit([readbackEncoder.finish()]);
+        await stagingBufferA.mapAsync(GPUMapMode.READ);
+        const mapped = stagingBufferA.getMappedRange();
+        outResult.set(new Float32Array(mapped));
+        stagingBufferA.unmap();
+        return true;
+    } else {
+        const writeIdx = force.readIdx ^ 1;
+        const readStaging = force.readIdx === 0 ? stagingBufferA : stagingBufferB;
+        const writeStaging = writeIdx === 0 ? stagingBufferA : stagingBufferB;
+        const readbackEncoder = device.createCommandEncoder();
+        readbackEncoder.copyBufferToBuffer(
+            stateA,
+            0,
+            writeStaging,
+            0,
+            count * STRIDE * Float32Array.BYTES_PER_ELEMENT,
+        );
+        device.queue.submit([readbackEncoder.finish()]);
+        if (force.hasPendingRead) {
+            await readStaging.mapAsync(GPUMapMode.READ);
+            const mapped = readStaging.getMappedRange();
+            outResult.set(new Float32Array(mapped));
+            readStaging.unmap();
+            force.readIdx = writeIdx;
+            return true;
+        } else {
+            force.hasPendingRead = true;
+            force.readIdx = writeIdx;
+            return false;
+        }
+    }
 }
