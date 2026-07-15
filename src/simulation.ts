@@ -49,6 +49,7 @@ let accelArray: Float32Array;
 let physicsBusy = false;
 let resetPending = false;
 let pendingInjection: { index: number; mass: number } | null = null;
+let gpuNeedsUpload = true;
 
 let energyWorker: Worker | null = null;
 let energyPending = false;
@@ -129,6 +130,7 @@ export async function createSimulation(particleCount: number) {
         renderBuffer = new Float32Array(initialData);
         physicsBuffer = new Float32Array(initialData.length);
         accelArray = new Float32Array((physicsBuffer.length / STRIDE) * 3);
+        gpuNeedsUpload = true;
     } else {
         useGPU = false;
         simManager = new SimulationManager(initialData, workerCount);
@@ -317,28 +319,36 @@ export function animationLoop() {
             }
             pendingInjection = null;
             resetEnergyBaseline();
+            gpuNeedsUpload = true;
         }
 
         physicsBusy = true;
-        physicsBuffer.set(renderBuffer);
+        const uploadData: Float32Array | null = gpuNeedsUpload ? physicsBuffer : null;
+        if (gpuNeedsUpload) {
+            physicsBuffer.set(renderBuffer);
+        }
 
         (async () => {
             try {
-                await computeFullStep(
+                const gotResult = await computeFullStep(
                     webgpuForce!,
-                    physicsBuffer,
+                    uploadData,
                     G,
                     softSq,
                     subDt,
                     subSteps,
                     physicsBuffer,
                     config.integrator,
+                    false,
                 );
-                sanitizeBuffer(physicsBuffer);
-                const tmp = renderBuffer;
-                renderBuffer = physicsBuffer;
-                physicsBuffer = tmp;
-                particleSystem.update(renderBuffer, config.particleSize, blackHoleIndex);
+                gpuNeedsUpload = false;
+                if (gotResult) {
+                    sanitizeBuffer(physicsBuffer);
+                    const tmp = renderBuffer;
+                    renderBuffer = physicsBuffer;
+                    physicsBuffer = tmp;
+                    particleSystem.update(renderBuffer, config.particleSize, blackHoleIndex);
+                }
                 physicsBusy = false;
             } catch (e) {
                 console.error("GPU physics step failed:", e);
