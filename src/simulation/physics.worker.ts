@@ -1,29 +1,30 @@
 const STRIDE = 7;
-let allData: Float32Array;
+let sharedData: Float32Array | null = null;
 
 self.onmessage = (e: MessageEvent) => {
     const msg = e.data;
     if (msg.type === "init") {
-        allData = new Float32Array(msg.buffer);
+        sharedData = new Float32Array(msg.buffer);
         return;
     }
     if (msg.type === "accel") {
         const { startIdx, endIdx, count, G, softeningSq } = msg;
+        const data: Float32Array = msg.particles ? msg.particles : (sharedData as Float32Array);
         const accel = new Float32Array(count * 3);
         if (endIdx > startIdx && count > 0) {
             for (let i = startIdx; i < endIdx; i++) {
                 const i7 = i * STRIDE;
-                const px = allData[i7];
-                const py = allData[i7 + 1];
-                const pz = allData[i7 + 2];
-                const mi = allData[i7 + 6];
+                const px = data[i7];
+                const py = data[i7 + 1];
+                const pz = data[i7 + 2];
+                const mi = data[i7 + 6];
                 const i3 = i * 3;
                 for (let j = i + 1; j < count; j++) {
                     const j7 = j * STRIDE;
-                    const dx = allData[j7] - px;
-                    const dy = allData[j7 + 1] - py;
-                    const dz = allData[j7 + 2] - pz;
-                    const mj = allData[j7 + 6];
+                    const dx = data[j7] - px;
+                    const dy = data[j7 + 1] - py;
+                    const dz = data[j7 + 2] - pz;
+                    const mj = data[j7 + 6];
                     const distSq = dx * dx + dy * dy + dz * dz + softeningSq;
                     const invDist = 1 / Math.sqrt(distSq);
                     const factor = G * mj * invDist * invDist * invDist;
