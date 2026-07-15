@@ -5,7 +5,7 @@ import { SceneRenderer } from "./visuals/SceneRenderer";
 import { ParticleSystem } from "./visuals/ParticleSystem";
 import { PostFX } from "./visuals/PostFX";
 import { UIController, SimConfig } from "./visuals/UIController";
-import { updateFPSDisplay, updateEnergyDisplay } from "./ui";
+import { showSharedArrayBufferNotice, updateEnergyDisplay, updateFPSDisplay } from "./ui";
 import { RotCurve } from "./visuals/RotCurve";
 
 const GALAXY_RADIUS = 400;
@@ -35,6 +35,7 @@ let particleSystem: ParticleSystem;
 let simManager: SimulationManager | null = null;
 let webgpuForce: WebGPUForce | null = null;
 let useGPU = false;
+let useSharedMemory = false;
 let blackHoleIndex = 0;
 let blackHoleActive = false;
 let initialEnergy = 0;
@@ -63,7 +64,7 @@ function sanitizeBuffer(data: Float32Array) {
     }
 }
 
-function initEnergyWorker(buffer: SharedArrayBuffer) {
+function initEnergyWorker(buffer: ArrayBufferLike) {
     if (energyWorker) energyWorker.terminate();
     energyWorker = new Worker(new URL("./simulation/energy.worker.ts", import.meta.url), {
         type: "module",
@@ -85,6 +86,9 @@ function initEnergyWorker(buffer: SharedArrayBuffer) {
 
 function requestEnergyCalculation() {
     if (!energyWorker || energyPending) return;
+    if (!useSharedMemory && renderBuffer) {
+        energyWorker.postMessage({ type: "data", particles: renderBuffer });
+    }
     energyPending = true;
     energyWorker.postMessage({ type: "compute" });
 }
@@ -142,11 +146,17 @@ export async function createSimulation(particleCount: number) {
         simManager = null;
     }
 
+    useSharedMemory =
+        typeof SharedArrayBuffer !== "undefined" && window.crossOriginIsolated === true;
+    if (!useSharedMemory) {
+        showSharedArrayBufferNotice();
+    }
+
     const initialData = initializeGalaxy(particleCount, GALAXY_RADIUS, config.seed);
     const workerCount = navigator.hardwareConcurrency || 4;
 
     const gpuForce = await createWebGPUForce(
-        initialData.buffer as SharedArrayBuffer,
+        initialData.buffer as ArrayBuffer,
         initialData.length / STRIDE,
     );
     if (gpuForce) {
@@ -188,10 +198,8 @@ export async function createSimulation(particleCount: number) {
         if (particleSystem.backgroundStars) renderer.scene.add(particleSystem.backgroundStars);
     }
 
-    const sharedBuf = (
-        useGPU ? initialData.buffer : simManager!.particleData.buffer
-    ) as SharedArrayBuffer;
-    initEnergyWorker(sharedBuf);
+    const energyBuf = useGPU ? initialData.buffer : simManager!.particleData.buffer;
+    initEnergyWorker(energyBuf);
 
     blackHoleIndex = 0;
     blackHoleActive = false;
