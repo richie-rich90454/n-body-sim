@@ -23,19 +23,24 @@ export function initializeGalaxy(
     const G = 2.0;
     const centralMass = 20000;
     const diskMass = 50000;
-    const haloVmax = 4.0;
-    const haloCoreRadius = 80;
     const a = 30;
     const b = 5;
     const softening = 10;
+    const diskScaleLength = 70;
+    const diskScaleHeight = 5;
 
-    const uniformMass = diskMass / particleCount;
+    const uniformMass = diskMass / (particleCount - 1);
     const vCirc = (r: number): number => {
         const v2_cen = (G * centralMass) / (r + softening);
         const denom = r * r + (a + b) * (a + b);
         const v2_disk = (G * diskMass * r * r) / (denom * Math.sqrt(denom));
-        const v2_halo = (haloVmax * haloVmax * (r * r)) / (r * r + haloCoreRadius * haloCoreRadius);
-        return Math.sqrt(v2_cen + v2_disk + v2_halo);
+        return Math.sqrt(v2_cen + v2_disk);
+    };
+    const expTrunc = 1 - Math.exp(-radius / diskScaleLength);
+    const gauss = (sigma: number): number => {
+        const u1 = Math.max(rng(), 1e-12);
+        const u2 = rng();
+        return Math.sqrt(-2 * Math.log(u1)) * Math.cos(2 * Math.PI * u2) * sigma;
     };
 
     for (let i = 0; i < particleCount; i++) {
@@ -50,23 +55,21 @@ export function initializeGalaxy(
             data[idx + 6] = centralMass;
             continue;
         }
-        const r = Math.pow(rng(), 1.5) * radius;
+        const u = rng();
+        const r = -diskScaleLength * Math.log(1 - u * expTrunc);
         const theta = rng() * Math.PI * 2;
-        const phi = Math.acos(2 * rng() - 1);
 
-        const x = r * Math.sin(phi) * Math.cos(theta);
-        const y = r * Math.sin(phi) * Math.sin(theta);
-        const z = r * Math.cos(phi) * 0.4;
+        const x = r * Math.cos(theta);
+        const y = r * Math.sin(theta);
+        const z = gauss(diskScaleHeight);
 
         data[idx] = x;
         data[idx + 1] = y;
         data[idx + 2] = z;
 
         const vc = vCirc(r);
-        const speed = vc;
-
-        const vx = -speed * Math.sin(theta);
-        const vy = speed * Math.cos(theta);
+        const vx = -vc * Math.sin(theta);
+        const vy = vc * Math.cos(theta);
         const vz = 0;
 
         data[idx + 3] = vx;
