@@ -256,24 +256,28 @@ export async function stepOnce(): Promise<void> {
     physicsBuffer.set(renderBuffer);
 
     if (useGPU && webgpuForce) {
-        await computeFullStep(
-            webgpuForce,
-            physicsBuffer,
-            G,
-            softSq,
-            subDt,
-            subSteps,
-            physicsBuffer,
-            config.integrator,
-            true,
-        );
-        sanitizeBuffer(physicsBuffer);
-        const tmp = renderBuffer;
-        renderBuffer = physicsBuffer;
-        physicsBuffer = tmp;
-        if (particleSystem)
-            particleSystem.update(renderBuffer, config.particleSize, blackHoleIndex);
-        physicsBusy = false;
+        try {
+            await computeFullStep(
+                webgpuForce,
+                physicsBuffer,
+                G,
+                softSq,
+                subDt,
+                subSteps,
+                physicsBuffer,
+                config.integrator,
+                true,
+            );
+            sanitizeBuffer(physicsBuffer);
+            const tmp = renderBuffer;
+            renderBuffer = physicsBuffer;
+            physicsBuffer = tmp;
+            if (particleSystem)
+                particleSystem.update(renderBuffer, config.particleSize, blackHoleIndex);
+            physicsBusy = false;
+        } catch (err) {
+            fallbackToCPU("computeFullStep failed in stepOnce: " + err);
+        }
     } else if (!useGPU && simManager) {
         simManager.step({
             G,
@@ -374,9 +378,8 @@ export function animationLoop() {
                     particleSystem.update(renderBuffer, config.particleSize, blackHoleIndex);
                 }
                 physicsBusy = false;
-            } catch (e) {
-                console.error("GPU physics step failed:", e);
-                physicsBusy = false;
+            } catch (err) {
+                fallbackToCPU("computeFullStep failed: " + err);
             }
         })();
     } else if (!config.isPaused && !useGPU && simManager) {
