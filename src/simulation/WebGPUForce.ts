@@ -13,10 +13,13 @@ export interface WebGPUForce {
     accelBuffer: GPUBuffer;
     stateA: GPUBuffer;
     stateB: GPUBuffer;
-    stagingBuffer: GPUBuffer;
+    stagingBufferA: GPUBuffer;
+    stagingBufferB: GPUBuffer;
     uniformBuffer: GPUBuffer;
     uniformWriteArray: Float32Array;
     count: number;
+    hasPendingRead: boolean;
+    readIdx: number;
 }
 
 export async function createWebGPUForce(
@@ -52,7 +55,11 @@ export async function createWebGPUForce(
         usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
     });
 
-    const stagingBuffer = device.createBuffer({
+    const stagingBufferA = device.createBuffer({
+        size: particleBufferSize,
+        usage: GPUBufferUsage.MAP_READ | GPUBufferUsage.COPY_DST,
+    });
+    const stagingBufferB = device.createBuffer({
         size: particleBufferSize,
         usage: GPUBufferUsage.MAP_READ | GPUBufferUsage.COPY_DST,
     });
@@ -237,10 +244,13 @@ fn main(@builtin(global_invocation_id) id: vec3<u32>) {
         accelBuffer,
         stateA,
         stateB,
-        stagingBuffer,
+        stagingBufferA,
+        stagingBufferB,
         uniformBuffer,
         uniformWriteArray,
         count,
+        hasPendingRead: false,
+        readIdx: 0,
     };
 }
 
@@ -263,7 +273,8 @@ export async function computeFullStep(
         accelBuffer,
         stateA,
         stateB,
-        stagingBuffer,
+        stagingBufferA,
+        stagingBufferB,
         uniformBuffer,
         uniformWriteArray,
         count,
@@ -330,14 +341,14 @@ export async function computeFullStep(
     readbackEncoder.copyBufferToBuffer(
         stateA,
         0,
-        stagingBuffer,
+        stagingBufferA,
         0,
         count * STRIDE * Float32Array.BYTES_PER_ELEMENT,
     );
     device.queue.submit([readbackEncoder.finish()]);
 
-    await stagingBuffer.mapAsync(GPUMapMode.READ);
-    const mapped = stagingBuffer.getMappedRange();
+    await stagingBufferA.mapAsync(GPUMapMode.READ);
+    const mapped = stagingBufferA.getMappedRange();
     outResult.set(new Float32Array(mapped));
-    stagingBuffer.unmap();
+    stagingBufferA.unmap();
 }
