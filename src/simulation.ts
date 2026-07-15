@@ -136,6 +136,22 @@ async function destroyWebGPU() {
     }
 }
 
+function fallbackToCPU(reason: string): void {
+    console.warn("Falling back to CPU physics:", reason);
+    useGPU = false;
+    destroyWebGPU();
+    if (renderBuffer) {
+        const workerCount = navigator.hardwareConcurrency || 4;
+        simManager = new SimulationManager(renderBuffer, workerCount);
+        simManager.onUpdate = function (data) {
+            sanitizeBuffer(data);
+            renderBuffer = data;
+            if (particleSystem) particleSystem.update(data, config.particleSize, blackHoleIndex);
+        };
+    }
+    physicsBusy = false;
+}
+
 export async function createSimulation(particleCount: number) {
     while (physicsBusy) {
         await new Promise((resolve) => setTimeout(resolve, 1));
@@ -155,10 +171,16 @@ export async function createSimulation(particleCount: number) {
     const initialData = initializeGalaxy(particleCount, GALAXY_RADIUS, config.seed);
     const workerCount = navigator.hardwareConcurrency || 4;
 
-    const gpuForce = await createWebGPUForce(
-        initialData.buffer as ArrayBuffer,
-        initialData.length / STRIDE,
-    );
+    let gpuForce: WebGPUForce | null = null;
+    try {
+        gpuForce = await createWebGPUForce(
+            initialData.buffer as ArrayBuffer,
+            initialData.length / STRIDE,
+        );
+    } catch (err) {
+        console.warn("WebGPU init failed, falling back to CPU:", err);
+        gpuForce = null;
+    }
     if (gpuForce) {
         useGPU = true;
         webgpuForce = gpuForce;
