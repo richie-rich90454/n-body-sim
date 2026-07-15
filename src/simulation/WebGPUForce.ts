@@ -57,10 +57,10 @@ export async function createWebGPUForce(
     });
 
     const uniformBuffer = device.createBuffer({
-        size: 20,
+        size: 16,
         usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
     });
-    const uniformWriteArray = new Float32Array(5);
+    const uniformWriteArray = new Float32Array(4);
 
     const bindGroupLayout = device.createBindGroupLayout({
         entries: [
@@ -90,7 +90,7 @@ export async function createWebGPUForce(
     const accelCode = `
 @group(0) @binding(0) var<storage, read> particles: array<f32>;
 @group(0) @binding(2) var<storage, read_write> accel: array<f32>;
-@group(0) @binding(3) var<uniform> params: vec4<f32>;   // x=G, y=softeningSq, z=blackHoleIdx, w=unused
+@group(0) @binding(3) var<uniform> params: vec4<f32>;   // x=G, y=softeningSq, z=dt, w=dtHalf
 const STRIDE = 7u;
 const TILE_SIZE = ${TILE_SIZE}u;
 @compute @workgroup_size(256,1,1)
@@ -105,7 +105,6 @@ fn main(@builtin(global_invocation_id) id: vec3<u32>) {
     var ax = 0.0; var ay = 0.0; var az = 0.0;
     let G = params.x;
     let softeningSq = params.y;
-    let blackHoleIdx = i32(params.z);
 
     let numTiles = (${count}u + TILE_SIZE - 1u) / TILE_SIZE;
     for (var t = 0u; t < numTiles; t++) {
@@ -113,11 +112,6 @@ fn main(@builtin(global_invocation_id) id: vec3<u32>) {
             let j = t*TILE_SIZE + jj;
             if (j >= ${count}u) { break; }
             if (i == j) { continue; }
-
-            // Nucleus (i=0) only feels black hole if active
-            if (i == 0u && blackHoleIdx >= 0i && j != u32(blackHoleIdx)) {
-                continue;
-            }
 
             let dx = particles[j*STRIDE] - px;
             let dy = particles[j*STRIDE+1u] - py;
@@ -230,7 +224,6 @@ export async function computeFullStep(
     softeningSq: number,
     subDt: number,
     subSteps: number,
-    blackHoleIdx: number,
     outResult: Float32Array,
 ): Promise<void> {
     const {
@@ -254,7 +247,6 @@ export async function computeFullStep(
     uniformWriteArray[1] = softeningSq;
     uniformWriteArray[2] = subDt;
     uniformWriteArray[3] = subDt * 0.5;
-    uniformWriteArray[4] = blackHoleIdx;
     device.queue.writeBuffer(uniformBuffer, 0, uniformWriteArray);
 
     const commandEncoder = device.createCommandEncoder();

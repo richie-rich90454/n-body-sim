@@ -197,7 +197,6 @@ export async function stepOnce(): Promise<void> {
         physicsBuffer[index * STRIDE + 4] = 0;
         physicsBuffer[index * STRIDE + 5] = 0;
         if (!useGPU && simManager) {
-            simManager.setBlackHoleIndex(blackHoleIndex);
             simManager.setParticleMass(index, mass);
             simManager.particleData[index * STRIDE + 3] = 0;
             simManager.particleData[index * STRIDE + 4] = 0;
@@ -219,7 +218,6 @@ export async function stepOnce(): Promise<void> {
             softSq,
             subDt,
             subSteps,
-            blackHoleActive ? blackHoleIndex : -1,
             physicsBuffer,
         );
         sanitizeBuffer(physicsBuffer);
@@ -308,7 +306,6 @@ export function animationLoop() {
             physicsBuffer[index * STRIDE + 4] = 0;
             physicsBuffer[index * STRIDE + 5] = 0;
             if (!useGPU && simManager) {
-                simManager.setBlackHoleIndex(blackHoleIndex);
                 simManager.setParticleMass(index, mass);
                 simManager.particleData[index * STRIDE + 3] = 0;
                 simManager.particleData[index * STRIDE + 4] = 0;
@@ -331,7 +328,6 @@ export function animationLoop() {
                     softSq,
                     subDt,
                     subSteps,
-                    blackHoleActive ? blackHoleIndex : -1,
                     physicsBuffer,
                 );
                 sanitizeBuffer(physicsBuffer);
