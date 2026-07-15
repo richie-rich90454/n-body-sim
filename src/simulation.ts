@@ -208,6 +208,7 @@ export async function stepOnce(): Promise<void> {
         }
         pendingInjection = null;
         resetEnergyBaseline();
+        gpuNeedsUpload = true;
     }
 
     physicsBusy = true;
@@ -223,6 +224,7 @@ export async function stepOnce(): Promise<void> {
             subSteps,
             physicsBuffer,
             config.integrator,
+            true,
         );
         sanitizeBuffer(physicsBuffer);
         const tmp = renderBuffer;
