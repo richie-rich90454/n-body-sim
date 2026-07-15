@@ -184,6 +184,11 @@ export async function createSimulation(particleCount: number) {
     if (gpuForce) {
         useGPU = true;
         webgpuForce = gpuForce;
+        webgpuForce.device.lost.then(function (info) {
+            console.warn("WebGPU device lost:", info);
+            if (!useGPU) return;
+            fallbackToCPU("device lost: " + info.message);
+        });
         renderBuffer = new Float32Array(initialData);
         physicsBuffer = new Float32Array(initialData.length);
         accelArray = new Float32Array((physicsBuffer.length / STRIDE) * 3);
